@@ -14,7 +14,7 @@ public class PowerUtil {
     public PowerUtil(Context context) {
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
-                "HongbaoWakelock");
+                "Lbdd:HongbaoWakelock");
         KeyguardManager km = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
         keyguardLock = km.newKeyguardLock("HongbaoKeyguardLock");
     }

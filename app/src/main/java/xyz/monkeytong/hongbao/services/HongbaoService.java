@@ -16,9 +16,16 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.util.DisplayMetrics;
+
+import xyz.monkeytong.hongbao.R;
 import xyz.monkeytong.hongbao.utils.HongbaoSignature;
 import xyz.monkeytong.hongbao.utils.PowerUtil;
 
+import android.app.NotificationManager;
+import android.content.Context;
+import android.support.v4.app.NotificationCompat;
+
+import java.util.Date;
 import java.util.List;
 
 public class HongbaoService extends AccessibilityService implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -31,6 +38,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private static final String WECHAT_VIEW_SELF_CH = "查看红包";
     private static final String WECHAT_VIEW_OTHERS_CH = "领取红包";
     private static final String WECHAT_NOTIFICATION_TIP = "[微信红包]";
+    private static final String Alipay_NOTIFICATION_TIP = "已成功向你转了1笔钱";
+    private static final String AlipayPackageName = "com.eg.android.AlipayGphone";
+    private static final String AlipayTransfer = "转账";
+    private static final String AlipayTransferToYou = "转账给你";
     private static final String WECHAT_LUCKMONEY_RECEIVE_ACTIVITY = ".plugin.luckymoney.ui";//com.tencent.mm/.plugin.luckymoney.ui.En_fba4b94f  com.tencent.mm/com.tencent.mm.plugin.luckymoney.ui.LuckyMoneyReceiveUI
     private static final String WECHAT_LUCKMONEY_DETAIL_ACTIVITY = "LuckyMoneyDetailUI";
     private static final String WECHAT_LUCKMONEY_GENERAL_ACTIVITY = "LauncherUI";
@@ -45,6 +56,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private PowerUtil powerUtil;
     private SharedPreferences sharedPreferences;
+    private int nid = 1;
+    private PendingIntent contentIntent;
+    private String notificationText = null;
 
     /**
      * AccessibilityEvent
@@ -59,7 +73,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         /* 检测通知消息 */
         if (!mMutex) {
-            if (sharedPreferences.getBoolean("pref_watch_notification", false) && watchNotifications(event)) return;
+            if (sharedPreferences.getBoolean("pref_watch_notification", false) && watchNotifications(event))
+                return;
             if (sharedPreferences.getBoolean("pref_watch_list", false) && watchList(event)) return;
             mListMutex = false;
         }
@@ -72,10 +87,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void watchChat(AccessibilityEvent event) {
+        if (this.notificationText == null) return; //not open through notification;
         this.rootNodeInfo = getRootInActiveWindow();
 
         if (rootNodeInfo == null) return;
-
+        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
+        if (!event.getClassName().toString().equals("com.alipay.mobile.chatapp.ui.PersonalChatMsgActivity_"))
+            return;
         mReceiveNode = null;
         mUnpackNode = null;
 
@@ -83,7 +101,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         /* 如果已经接收到红包并且还没有戳开 */
         Log.d(TAG, "watchChat mLuckyMoneyReceived:" + mLuckyMoneyReceived + " mLuckyMoneyPicked:" + mLuckyMoneyPicked + " mReceiveNode:" + mReceiveNode);
-        if (mLuckyMoneyReceived  && (mReceiveNode != null)) {
+        if (mLuckyMoneyReceived && (mReceiveNode != null)) {
             mMutex = true;
 
             mReceiveNode.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
@@ -113,7 +131,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private void openPacket() {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         float dpi = metrics.densityDpi;
-        Log.d(TAG, "openPacket！" +  dpi);
+        Log.d(TAG, "openPacket！" + dpi);
         if (android.os.Build.VERSION.SDK_INT <= 23) {
             mUnpackNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
         } else {
@@ -121,9 +139,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 Path path = new Path();
                 if (640 == dpi) { //1440
                     path.moveTo(720, 1575);
-                } else if(320 == dpi){//720p
+                } else if (320 == dpi) {//720p
                     path.moveTo(355, 780);
-                }else if(480 == dpi){//1080p
+                } else if (480 == dpi) {//1080p
                     path.moveTo(533, 1115);
                 }
                 GestureDescription.Builder builder = new GestureDescription.Builder();
@@ -196,18 +214,34 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             return false;
 
         // Not a hongbao
-        String tip = event.getText().toString();
-        if (!tip.contains(WECHAT_NOTIFICATION_TIP)) return true;
+        String tip = event.getText().get(0).toString();
+        if (!tip.contains(Alipay_NOTIFICATION_TIP)) return true;
 
+        if (!event.getPackageName().toString().contains(AlipayPackageName)) return true;
+        this.notificationText = tip;
         Parcelable parcelable = event.getParcelableData();
         if (parcelable instanceof Notification) {
-            Notification notification = (Notification) parcelable;
+            final Notification notification = (Notification) parcelable;
             try {
                 /* 清除signature,避免进入会话后误判 */
                 signature.cleanSignature();
+                this.contentIntent = notification.contentIntent;
+                this.powerUtil.handleWakeLock(true);
+                int delayFlag = 1 * 1000;
+                new android.os.Handler().postDelayed(
+                        new Runnable() {
+                            public void run() {
+                                try {
+                                    notification.contentIntent.send();
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        },
+                        delayFlag);
 
-                notification.contentIntent.send();
-            } catch (PendingIntent.CanceledException e) {
+
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -241,7 +275,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         return null;
     }
 
-    private void checkNodeInfo(int eventType) {
+    private void checkNodeInfoWechat(int eventType) {
         if (this.rootNodeInfo == null) return;
 
         if (signature.commentString != null) {
@@ -278,8 +312,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         boolean hasNodes = this.hasOneOfThoseNodes(
                 WECHAT_BETTER_LUCK_CH, WECHAT_DETAILS_CH,
                 WECHAT_BETTER_LUCK_EN, WECHAT_DETAILS_EN, WECHAT_EXPIRES_CH);
-        Log.d(TAG, "checkNodeInfo  hasNodes:" + hasNodes + " mMutex:"+ mMutex);
-        if ( eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && hasNodes
+        Log.d(TAG, "checkNodeInfo  hasNodes:" + hasNodes + " mMutex:" + mMutex);
+        if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && hasNodes
                 && (currentActivityName.contains(WECHAT_LUCKMONEY_DETAIL_ACTIVITY)
                 || currentActivityName.contains(WECHAT_LUCKMONEY_RECEIVE_ACTIVITY))) {
             mMutex = false;
@@ -288,6 +322,66 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             performGlobalAction(GLOBAL_ACTION_BACK);
             signature.commentString = generateCommentString();
         }
+    }
+
+    private void sendNotification(String amount) {
+
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+                .setContentTitle("支付宝转账监控")
+                .setSmallIcon(R.mipmap.icon_alipay)
+                .setContentText(this.notificationText + amount + "元")
+                .setContentIntent(this.contentIntent);
+
+
+        final Notification notification = builder.build();
+        //notification.flags = Notification.FLAG_ONGOING_EVENT;
+
+        final int nid = this.nid++;
+        this.notificationText = null;
+        //int delayFlag = sharedPreferences.getInt("pref_open_delay", 0) * 1000;
+        int delayFlag = 2 * 1000;
+        new android.os.Handler().postDelayed(
+                new Runnable() {
+                    public void run() {
+                        try {
+
+                            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+                            notificationManager.notify(nid, notification);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                delayFlag);
+
+
+    }
+
+    private void checkNodeInfo(int eventType) {
+        if (this.rootNodeInfo == null) return;
+
+        AccessibilityNodeInfo node1 = this.getTheLastNode("元");
+        if (node1 != null) {
+            String text = node1.getText().toString();
+            text = text.substring(0, text.length() - 1);
+            try {
+                float amount = Float.parseFloat(text);
+                Log.d(TAG, "收到钱数:" + amount);
+                this.sendNotification(text);
+                performGlobalAction(GLOBAL_ACTION_HOME);
+                this.powerUtil.handleWakeLock(false);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            return;
+        }
+
+        /* 戳开红包，红包还没抢完，遍历节点匹配“拆红包” */
+        //AccessibilityNodeInfo node2 = findOpenButton(this.rootNodeInfo);
+
     }
 
     private void sendComment() {

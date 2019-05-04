@@ -1,13 +1,13 @@
  apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "26.0.2"
+    compileSdkVersion 26
+    buildToolsVersion "28.0.3"
     useLibrary 'org.apache.http.legacy'
     defaultConfig {
         applicationId "xyz.monkeytong.hongbao"
         minSdkVersion 19
-        targetSdkVersion 25
+        targetSdkVersion 26
         versionCode 7
         versionName "v5.0.0"
         ndk {
@@ -42,4 +42,5 @@ android {
      //其中latest.release指代最新版本号，也可以指定明确的版本号，例如2.2.0
      compile 'com.android.support:support-v4:25.4.0'
      compile 'com.android.support:appcompat-v7:25.4.0'
+     compile 'com.squareup.retrofit2:retrofit:2.5.0'
  }
