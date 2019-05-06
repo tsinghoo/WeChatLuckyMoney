@@ -422,7 +422,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         for (String text : texts) {
             if (text == null) continue;
 
-            nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText(text);
+            nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId("com.alipay.mobile.chatapp:id/biz_desc");//biz_title;//.findAccessibilityNodeInfosByText(text)
 
             if (nodes != null && !nodes.isEmpty()) {
                 tempNode = nodes.get(nodes.size() - 1);
