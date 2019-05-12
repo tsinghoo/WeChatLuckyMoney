@@ -7,5 +7,5 @@
     android:packageNames="com.tencent.mm,com.eg.android.AlipayGphone"
     android:notificationTimeout="10"
     android:settingsActivity="xyz.monkeytong.hongbao.activities.SettingsActivity"
-    android:accessibilityFlags="flagDefault"
+    android:accessibilityFlags="flagDefault|flagReportViewIds|flagIncludeNotImportantViews|flagRequestEnhancedWebAccessibility"
     android:canRetrieveWindowContent="true"/>

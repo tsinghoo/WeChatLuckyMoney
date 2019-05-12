@@ -86,14 +86,143 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
     }
 
-    private void watchChat(AccessibilityEvent event) {
+
+    private void watchChatV1(AccessibilityEvent event) {
         if (this.notificationText == null) return; //not open through notification;
         this.rootNodeInfo = getRootInActiveWindow();
 
         if (rootNodeInfo == null) return;
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
-        if (!event.getClassName().toString().equals("com.alipay.mobile.chatapp.ui.PersonalChatMsgActivity_"))
+        String cName = event.getClassName().toString();
+
+        Log.i("className", "className:" + cName);
+        if (!cName.equals("com.alipay.mobile.chatapp.ui.PersonalChatMsgActivity_"))
             return;
+        mReceiveNode = null;
+        mUnpackNode = null;
+
+        checkNodeInfo(event.getEventType());
+
+        /* 如果已经接收到红包并且还没有戳开 */
+        Log.d(TAG, "watchChat mLuckyMoneyReceived:" + mLuckyMoneyReceived + " mLuckyMoneyPicked:" + mLuckyMoneyPicked + " mReceiveNode:" + mReceiveNode);
+        if (mLuckyMoneyReceived && (mReceiveNode != null)) {
+            mMutex = true;
+
+            mReceiveNode.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            mLuckyMoneyReceived = false;
+            mLuckyMoneyPicked = true;
+        }
+        /* 如果戳开但还未领取 */
+        Log.d(TAG, "戳开红包！" + " mUnpackCount: " + mUnpackCount + " mUnpackNode: " + mUnpackNode);
+        if (mUnpackCount >= 1 && (mUnpackNode != null)) {
+            int delayFlag = sharedPreferences.getInt("pref_open_delay", 0) * 1000;
+            new android.os.Handler().postDelayed(
+                    new Runnable() {
+                        public void run() {
+                            try {
+                                openPacket();
+                            } catch (Exception e) {
+                                mMutex = false;
+                                mLuckyMoneyPicked = false;
+                                mUnpackCount = 0;
+                            }
+                        }
+                    },
+                    delayFlag);
+        }
+    }
+
+    private boolean isInBillView() {
+        AccessibilityNodeInfo lastNode = null, node;
+
+        List<AccessibilityNodeInfo> nodes;
+        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
+        if (nodes==null || nodes.size()<1){
+            return false;
+        }
+        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("筛选");
+        if (nodes==null || nodes.size()<1){
+            return false;
+        }
+        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("分类");
+        if (nodes==null || nodes.size()<1){
+            return false;
+        }
+        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("搜索");
+        if (nodes==null || nodes.size()<1){
+            return false;
+        }
+
+        if (1==1)
+            return true;
+
+        AccessibilityNodeInfo node1 = this.getTheLastNode("com.alipay.mobile.bill.list:id/listItem");
+        if (node1 == null) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isInMineView() {
+        AccessibilityNodeInfo lastNode = null, node;
+
+        List<AccessibilityNodeInfo> nodes;
+        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("总资产");
+        if (nodes==null || nodes.size()<1){
+            return false;
+        }
+        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
+        if (nodes==null || nodes.size()<1){
+            return false;
+        }
+
+        if (1==1)
+        return true;
+
+        String rn = nodes.get(0).getViewIdResourceName();
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId(rn);
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId("com.alipay.mobile.antui:id/list_layout");
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId("com.alipay.mobile.antui:id/listContainer");
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId("com.alipay.android.phone.wealth.home:id/tab_description");
+
+
+        if (nodes != null && nodes.size() > 2) {
+            node = nodes.get(3);
+            if (node.getText().equals("账单")) {
+                node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void watchChat(AccessibilityEvent event) {
+        //if (this.notificationText == null) return; //not open through notification;
+        this.rootNodeInfo = getRootInActiveWindow();
+
+        if (rootNodeInfo == null) return;
+        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                && event.getEventType() != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+                && event.getEventType() != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return;
+        String cName = event.getClassName().toString();
+
+        Log.i("className", "className:" + cName);
+
+        if (isInBillView()) {
+
+        } else if (isInMineView()) {
+            List<AccessibilityNodeInfo> nodes;
+            nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
+            nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        } else if (cName.equals("com.eg.android.AlipayGphone.AlipayLogin")) {
+
+        } else {
+
+            performGlobalAction(GLOBAL_ACTION_BACK);
+            return;
+        }
         mReceiveNode = null;
         mUnpackNode = null;
 
@@ -324,13 +453,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
     }
 
-    private void sendNotification(String amount) {
+    private void sendNotification(String amount, String title) {
 
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 .setContentTitle("支付宝转账监控")
                 .setSmallIcon(R.mipmap.icon_alipay)
-                .setContentText(this.notificationText + amount + "元")
+                .setContentText(this.notificationText + amount + "元:" + title)
                 .setContentIntent(this.contentIntent);
 
 
@@ -362,14 +491,17 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private void checkNodeInfo(int eventType) {
         if (this.rootNodeInfo == null) return;
 
-        AccessibilityNodeInfo node1 = this.getTheLastNode("元");
+        AccessibilityNodeInfo node1 = this.getTheLastNode("com.alipay.mobile.chatapp:id/biz_desc");
         if (node1 != null) {
             String text = node1.getText().toString();
             text = text.substring(0, text.length() - 1);
             try {
                 float amount = Float.parseFloat(text);
                 Log.d(TAG, "收到钱数:" + amount);
-                this.sendNotification(text);
+
+                node1 = this.getTheLastNode("com.alipay.mobile.chatapp:id/biz_title");
+                String title = node1.getText().toString();
+                this.sendNotification(text, title);
                 performGlobalAction(GLOBAL_ACTION_HOME);
                 this.powerUtil.handleWakeLock(false);
             } catch (Exception ex) {
@@ -422,7 +554,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         for (String text : texts) {
             if (text == null) continue;
 
-            nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId("com.alipay.mobile.chatapp:id/biz_desc");//biz_title;//.findAccessibilityNodeInfosByText(text)
+            nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId(text);//biz_title;//.findAccessibilityNodeInfosByText(text)
 
             if (nodes != null && !nodes.isEmpty()) {
                 tempNode = nodes.get(nodes.size() - 1);
