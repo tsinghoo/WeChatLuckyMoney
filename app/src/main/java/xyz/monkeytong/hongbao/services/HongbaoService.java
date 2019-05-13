@@ -353,14 +353,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     return;
                 }
 
-                if (!amount.startsWith("+")) {
-                } else {
-                    amount = amount.substring(1);
-                    synchronized (this) {
-                        if (this.notificationText != null) {
-                            this.sendNotification(amount, reference, name, mobile);
-                            back();
-                        }
+                synchronized (this) {
+                    if (this.notificationText != null) {
+                        this.sendNotification(amount, reference, name, mobile);
+                        back();
                     }
                 }
             }
