@@ -284,91 +284,73 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
             AccessibilityNodeInfo root = nodes.get(0);
             AccessibilityNodeInfo node = this.getChild(root, "00000");
-            String clsName = node.getClassName().toString();
-            String amount, name, mobile, reference;
-            if (clsName.equals("android.widget.Button")) {
-                node = this.getChild(root, "00008");
-                if (node != null) {
-                    name = node.getContentDescription().toString();
-                    if (name.contains(" ")) {
-                        String[] s = name.split(" ");
-                        name = s[0];
-                        mobile = s[1];
+            if (node != null) {
+                String clsName = node.getClassName().toString();
+                String amount = "", name = "", mobile = "", reference = "";
+                if (clsName.equals("android.widget.Button")) {
+                    node = this.getChild(root, "00008");
+                    if (node != null) {
+                        name = node.getContentDescription().toString();
+                        if (name.contains(" ")) {
+                            String[] s = name.split(" ");
+                            name = s[0];
+                            mobile = s[1];
+                        }
+                    }
+                    node = this.getChild(root, "00001");
+                    if (node != null) {
+                        amount = node.getContentDescription().toString();
+                    }
+                    node = this.getChild(root, "00006");
+                    if (node != null) {
+                        reference = node.getContentDescription().toString();
+                    }
+                } else if (clsName.equals("android.view.View")) {
+                    node = this.getChild(root, "00001");
+                    if (node != null) {
+                        name = node.getContentDescription().toString();
+                    }
+
+                    node = this.getChild(root, "00002");
+                    if (node != null) {
+                        amount = node.getContentDescription().toString();
+                    }
+
+                    node = this.getChild(root, "00005");
+                    if (node != null) {
+                        reference = node.getContentDescription().toString();
+                        if (reference.contains("-")) {
+                            reference = reference.split("-")[1];
+                        }
                     }
                 }
-                node = this.getChild(root, "00001");
-                if (node != null) {
-                    amount = node.getContentDescription().toString();
-                }
-                node = this.getChild(root, "00006");
-                if (node != null) {
-                    reference = node.getContentDescription().toString();
-                }
-            } else if (clsName.equals("android.view.View")) {
-                node = this.getChild(root, "00001");
-                if (node != null) {
-                    name = node.getContentDescription().toString();
+
+                if ("".equals(amount + reference + name + mobile)) {
+                    return;
                 }
 
-                node = this.getChild(root, "00002");
-                if (node != null) {
-                    amount = node.getContentDescription().toString();
+                if (!amount.startsWith("+")) {
+                    amount = amount.substring(1);
                 }
 
-                node = this.getChild(root, "00005");
-                if (node != null) {
-                    reference = node.getContentDescription().toString();
-                    if (reference.contains("-")) {
-                        reference = reference.split("-")[1];
-                    }
-                }
+                this.sendNotification(amount, reference, name, mobile);
+                back();
             }
-
-
-            performGlobalAction(GLOBAL_ACTION_BACK);
             return;
 
         } else if (isInMineView(nodes)) {
             nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
-            nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            if (nodes != null && nodes.size() > 0) {
+                nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            }
         } else if (cName.equals("com.eg.android.AlipayGphone.AlipayLogin")) {
-
+            if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/tab_description")) {
+                if (nodes.size() > 0) {
+                    nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }
+            }
         } else {
-
-            performGlobalAction(GLOBAL_ACTION_BACK);
-            return;
-        }
-        mReceiveNode = null;
-        mUnpackNode = null;
-
-        checkNodeInfo(event.getEventType());
-
-        /* 如果已经接收到红包并且还没有戳开 */
-        Log.d(TAG, "watchChat mLuckyMoneyReceived:" + mLuckyMoneyReceived + " mLuckyMoneyPicked:" + mLuckyMoneyPicked + " mReceiveNode:" + mReceiveNode);
-        if (mLuckyMoneyReceived && (mReceiveNode != null)) {
-            mMutex = true;
-
-            mReceiveNode.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
-            mLuckyMoneyReceived = false;
-            mLuckyMoneyPicked = true;
-        }
-        /* 如果戳开但还未领取 */
-        Log.d(TAG, "戳开红包！" + " mUnpackCount: " + mUnpackCount + " mUnpackNode: " + mUnpackNode);
-        if (mUnpackCount >= 1 && (mUnpackNode != null)) {
-            int delayFlag = sharedPreferences.getInt("pref_open_delay", 0) * 1000;
-            new android.os.Handler().postDelayed(
-                    new Runnable() {
-                        public void run() {
-                            try {
-                                openPacket();
-                            } catch (Exception e) {
-                                mMutex = false;
-                                mLuckyMoneyPicked = false;
-                                mUnpackCount = 0;
-                            }
-                        }
-                    },
-                    delayFlag);
+            back();
         }
     }
 
@@ -563,18 +545,37 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             mMutex = false;
             mLuckyMoneyPicked = false;
             mUnpackCount = 0;
-            performGlobalAction(GLOBAL_ACTION_BACK);
+            back();
             signature.commentString = generateCommentString();
         }
     }
 
-    private void sendNotification(String amount, String title) {
+    private void back() {
 
+        int delayFlag = 1 * 1000;
+        new android.os.Handler().postDelayed(
+                new Runnable() {
+                    public void run() {
+                        try {
+                            performGlobalAction(GLOBAL_ACTION_BACK);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                delayFlag);
+    }
+
+    private void sendNotification(String amount, String reference, String name, String mobile) {
+
+        if ("".equals(amount + reference + name + mobile)) {
+            return;
+        }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 .setContentTitle("支付宝转账监控")
                 .setSmallIcon(R.mipmap.icon_alipay)
-                .setContentText(this.notificationText + amount + "元:" + title)
+                .setContentText(this.notificationText + "[" + amount + ":" + reference + ":" + name + ":" + mobile + "]")
                 .setContentIntent(this.contentIntent);
 
 
@@ -616,7 +617,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
                 node1 = this.getTheLastNode("com.alipay.mobile.chatapp:id/biz_title");
                 String title = node1.getText().toString();
-                this.sendNotification(text, title);
+                this.sendNotification(text, "", title, "");
                 performGlobalAction(GLOBAL_ACTION_HOME);
                 this.powerUtil.handleWakeLock(false);
             } catch (Exception ex) {
