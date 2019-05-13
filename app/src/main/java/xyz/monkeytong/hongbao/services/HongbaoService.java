@@ -135,7 +135,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     public boolean findNodesById(List<AccessibilityNodeInfo> nodes, AccessibilityNodeInfo root, String id) {
         for (int i = 0; i < root.getChildCount(); ++i) {
             AccessibilityNodeInfo child = root.getChild(i);
-            if (child.getViewIdResourceName().equals(id)) {
+            String rid = child.getViewIdResourceName();
+            if (rid != null && rid.equals(id)) {
                 nodes.add(child);
             } else {
                 this.findNodesById(nodes, child, id);
@@ -155,37 +156,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.bill.list:id/listItem")) {
             return true;
         }
-
-        if (1 == 1) {
-            return false;
-        }
-
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
-        if (nodes == null || nodes.size() < 1) {
-            return false;
-        }
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("筛选");
-        if (nodes == null || nodes.size() < 1) {
-            return false;
-        }
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("分类");
-        if (nodes == null || nodes.size() < 1) {
-            return false;
-        }
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("搜索");
-        if (nodes == null || nodes.size() < 1) {
-            return false;
-        }
-
-        if (1 == 1)
-            return true;
-
-        AccessibilityNodeInfo node1 = this.getTheLastNode("com.alipay.mobile.bill.list:id/listItem");
-        if (node1 == null) {
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     private boolean isInMineView(List<AccessibilityNodeInfo> nodes) {
@@ -193,38 +164,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         nodes.clear();
 
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.antui:id/item_left_text")) {
-            if (nodes.get(0).getText().equals("账单")) {
-                return true;
-            }
-        }
-
-        if (1 == 1) {
-            return false;
-        }
-
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("总资产");
-        if (nodes == null || nodes.size() < 1) {
-            return false;
-        }
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
-        if (nodes == null || nodes.size() < 1) {
-            return false;
-        }
-
-        if (1 == 1)
-            return true;
-
-        String rn = nodes.get(0).getViewIdResourceName();
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId(rn);
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId("com.alipay.mobile.antui:id/list_layout");
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId("com.alipay.mobile.antui:id/listContainer");
-        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId("com.alipay.android.phone.wealth.home:id/tab_description");
-
-
-        if (nodes != null && nodes.size() > 2) {
-            node = nodes.get(3);
-            if (node.getText().equals("账单")) {
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            if (nodes.get(2).getText().equals("账单")) {
                 return true;
             }
         }
@@ -244,9 +184,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         Log.i("className", "className:" + cName);
 
-        List<AccessibilityNodeInfo> nodes=new java.util.ArrayList<AccessibilityNodeInfo>();
+        List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
         if (isInBillView(nodes)) {
-
+            //performGlobalAction(GLOBAL_ACTION_BACK);
         } else if (isInMineView(nodes)) {
             nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
             nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
