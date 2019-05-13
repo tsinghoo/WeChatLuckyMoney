@@ -1,0 +1,29 @@
+com.eg.android.AlipayGphone.AlipayLogin
+
+com.alipay.mobile.bill.list:id/listItem
+com.alipay.mobile.bill.list:id/billName
+com.alipay.mobile.bill.list:id/billAmount   timeInfo1 timeInfo2
+
+
+com.alipay.mobile.nebula:id/h5_pc_container[0][0][0][0][0]:View
+[1]姓名
+[2]金额
+[5]商品说明
+【9】创建时间
+【11】订单号
+
+[0][0][0][0][0] Button:
+[1]金额
+[6]备注
+[8]昵称 手机号
+[12]创建时间
+[14]订单号
+
+com.alipay.android.phone.wealth.home:id/tab_description
+
+com.alipay.mobile.antui:id/item_left_text [3]. Text:账单
+com.alipay.mobile.antui:id/item_left_text
+com.alipay.mobile.antui:id/list_layout
+com.alipay.mobile.antui:id/listContainer
+
+
