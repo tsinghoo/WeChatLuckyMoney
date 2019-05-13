@@ -54,6 +54,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private boolean mMutex = false, mListMutex = false, mChatMutex = false;
     private HongbaoSignature signature = new HongbaoSignature();
 
+    private List<String> bills = new java.util.ArrayList<String>();
+
     private PowerUtil powerUtil;
     private SharedPreferences sharedPreferences;
     private int nid = 1;
@@ -135,6 +137,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     public boolean findNodesById(List<AccessibilityNodeInfo> nodes, AccessibilityNodeInfo root, String id) {
         for (int i = 0; i < root.getChildCount(); ++i) {
             AccessibilityNodeInfo child = root.getChild(i);
+            if (child == null) {
+                continue;
+            }
+
             String rid = child.getViewIdResourceName();
             if (rid != null && rid.equals(id)) {
                 nodes.add(child);
@@ -150,13 +156,67 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         return false;
     }
 
-    private boolean isInBillView(List<AccessibilityNodeInfo> nodes) {
+
+    private boolean isInBill(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node;
+        nodes.clear();
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.nebula:id/h5_pc_container")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isInBillList(List<AccessibilityNodeInfo> nodes) {
         AccessibilityNodeInfo lastNode = null, node;
         nodes.clear();
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.bill.list:id/listItem")) {
+
+
             return true;
         }
+
+
         return false;
+    }
+
+    private boolean billExist(String bill) {
+        for (int i = 0; i < this.bills.size(); ++i) {
+            if (bills.get(i).equals(bill)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean clickBill(AccessibilityNodeInfo node) {
+        List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
+        String bill = "";
+        if (this.findNodesById(items, node, "com.alipay.mobile.bill.list:id/billName")) {
+            bill = bill + items.get(0).getText().toString();
+        }
+        items.clear();
+        if (this.findNodesById(items, node, "com.alipay.mobile.bill.list:id/billAmount")) {
+            bill = bill + items.get(0).getText().toString();
+        }
+        items.clear();
+        if (this.findNodesById(items, node, "com.alipay.mobile.bill.list:id/timeInfo1")) {
+            bill = bill + items.get(0).getText().toString();
+        }
+        items.clear();
+        if (this.findNodesById(items, node, "com.alipay.mobile.bill.list:id/timeInfo2")) {
+            bill = bill + items.get(0).getText().toString();
+        }
+        items.clear();
+
+        if (billExist(bill)) {
+            return false;
+        } else {
+            this.bills.add(bill);
+            node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            return true;
+        }
     }
 
     private boolean isInMineView(List<AccessibilityNodeInfo> nodes) {
@@ -164,12 +224,30 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         nodes.clear();
 
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.antui:id/item_left_text")) {
-            if (nodes.get(2).getText().equals("账单")) {
+            if (nodes.size() > 2 && nodes.get(2).getText().equals("账单")) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    AccessibilityNodeInfo getChild(AccessibilityNodeInfo root, String index) {
+        if (index.length() == 0) {
+            return root;
+        }
+
+
+        int i = Integer.parseInt(index.substring(0, 1));
+        if (root.getChildCount() <= i) {
+            return null;
+        }
+
+        if (index.length() == 1) {
+            return root.getChild(i);
+        }
+
+        return this.getChild(root.getChild(i), index.substring(i + 1, index.length()));
     }
 
     private void watchChat(AccessibilityEvent event) {
@@ -185,8 +263,71 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         Log.i("className", "className:" + cName);
 
         List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
-        if (isInBillView(nodes)) {
-            //performGlobalAction(GLOBAL_ACTION_BACK);
+        if (isInBillList(nodes)) {
+            for (int i = 0; i < nodes.size(); ++i) {
+                AccessibilityNodeInfo node = nodes.get(i);
+                List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
+                if (this.findNodesById(items, node, "com.alipay.mobile.bill.list:id/categoryTextView")) {
+                    String text = items.get(0).getText().toString();
+                    if ("小买卖".equals(text)) {
+                        if (this.clickBill(node)) {
+                            break;
+                        }
+                    } else if ("其他".equals(text)) {
+                        if (this.clickBill(node)) {
+                            break;
+                        }
+                    }
+                }
+            }
+        } else if (isInBill(nodes)) {
+
+            AccessibilityNodeInfo root = nodes.get(0);
+            AccessibilityNodeInfo node = this.getChild(root, "00000");
+            String clsName = node.getClassName().toString();
+            String amount, name, mobile, reference;
+            if (clsName.equals("android.widget.Button")) {
+                node = this.getChild(root, "00008");
+                if (node != null) {
+                    name = node.getContentDescription().toString();
+                    if (name.contains(" ")) {
+                        String[] s = name.split(" ");
+                        name = s[0];
+                        mobile = s[1];
+                    }
+                }
+                node = this.getChild(root, "00001");
+                if (node != null) {
+                    amount = node.getContentDescription().toString();
+                }
+                node = this.getChild(root, "00006");
+                if (node != null) {
+                    reference = node.getContentDescription().toString();
+                }
+            } else if (clsName.equals("android.view.View")) {
+                node = this.getChild(root, "00001");
+                if (node != null) {
+                    name = node.getContentDescription().toString();
+                }
+
+                node = this.getChild(root, "00002");
+                if (node != null) {
+                    amount = node.getContentDescription().toString();
+                }
+
+                node = this.getChild(root, "00005");
+                if (node != null) {
+                    reference = node.getContentDescription().toString();
+                    if (reference.contains("-")) {
+                        reference = reference.split("-")[1];
+                    }
+                }
+            }
+
+
+            performGlobalAction(GLOBAL_ACTION_BACK);
+            return;
+
         } else if (isInMineView(nodes)) {
             nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
             nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
