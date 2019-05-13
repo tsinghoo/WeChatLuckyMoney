@@ -61,6 +61,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private int nid = 1;
     private PendingIntent contentIntent;
     private String notificationText = null;
+    private int backedFromBusiness = 0;
 
     /**
      * AccessibilityEvent
@@ -160,8 +161,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private boolean isInBill(List<AccessibilityNodeInfo> nodes) {
         AccessibilityNodeInfo lastNode = null, node;
         nodes.clear();
-        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.nebula:id/h5_pc_container")) {
-            return true;
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.nebula:id/h5_tv_title")) {
+            if ("账单详情".equals(nodes.get(0).getText())) {
+                nodes.clear();
+                this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.nebula:id/h5_pc_container");
+                return true;
+            }
         }
 
         return false;
@@ -177,6 +182,18 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
 
 
+        return false;
+    }
+
+    private boolean isInBusiness(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node;
+        nodes.clear();
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.nebula:id/h5_tv_title")) {
+
+            if ("商家服务".equals(nodes.get(0).getText())) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -251,7 +268,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void watchChat(AccessibilityEvent event) {
-        //if (this.notificationText == null) return; //not open through notification;
+        if (this.notificationText == null) return; //not open through notification;
         this.rootNodeInfo = getRootInActiveWindow();
 
         if (rootNodeInfo == null) return;
@@ -260,7 +277,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 && event.getEventType() != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return;
         String cName = event.getClassName().toString();
 
-        Log.i("className", "className:" + cName);
+        Log.i(TAG, "className:" + cName);
+        Log.i(TAG, "" + event.getEventType());
 
         List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
         if (isInBillList(nodes)) {
@@ -280,6 +298,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     }
                 }
             }
+        } else if (isInBusiness(nodes)) {
+            if (this.backedFromBusiness == 0) {
+                this.backedFromBusiness = 1;
+                back();
+            }
+            return;
         } else if (isInBill(nodes)) {
 
             AccessibilityNodeInfo root = nodes.get(0);
@@ -330,11 +354,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
 
                 if (!amount.startsWith("+")) {
+                } else {
                     amount = amount.substring(1);
+                    synchronized (this) {
+                        if (this.notificationText != null) {
+                            this.sendNotification(amount, reference, name, mobile);
+                            back();
+                        }
+                    }
                 }
-
-                this.sendNotification(amount, reference, name, mobile);
-                back();
             }
             return;
 
@@ -343,14 +371,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             if (nodes != null && nodes.size() > 0) {
                 nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
-        } else if (cName.equals("com.eg.android.AlipayGphone.AlipayLogin")) {
-            if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/tab_description")) {
-                if (nodes.size() > 0) {
-                    nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                }
+        } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/sigle_tab_bg")) {
+            if (nodes.size() > 0) {
+                nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
         } else {
-            back();
         }
     }
 
@@ -439,12 +464,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (event.getEventType() != AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED)
             return false;
 
+        if (!event.getPackageName().toString().contains(AlipayPackageName)) return true;
         // Not a hongbao
         String tip = event.getText().get(0).toString();
-        if (!tip.contains(Alipay_NOTIFICATION_TIP)) return true;
+        if (!tip.contains(Alipay_NOTIFICATION_TIP) && !tip.contains("成功收款")) return true;
 
-        if (!event.getPackageName().toString().contains(AlipayPackageName)) return true;
         this.notificationText = tip;
+        this.backedFromBusiness = 0;
         Parcelable parcelable = event.getParcelableData();
         if (parcelable instanceof Notification) {
             final Notification notification = (Notification) parcelable;
@@ -575,10 +601,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 .setContentTitle("支付宝转账监控")
                 .setSmallIcon(R.mipmap.icon_alipay)
-                .setContentText(this.notificationText + "[" + amount + ":" + reference + ":" + name + ":" + mobile + "]")
+                .setContentText("[" + amount + ":" + reference + ":" + name + ":" + mobile + "]")
                 .setContentIntent(this.contentIntent);
 
-
+        this.notificationText = null;
         final Notification notification = builder.build();
         //notification.flags = Notification.FLAG_ONGOING_EVENT;
 
