@@ -132,28 +132,52 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
     }
 
-    private boolean isInBillView() {
+    public boolean findNodesById(List<AccessibilityNodeInfo> nodes, AccessibilityNodeInfo root, String id) {
+        for (int i = 0; i < root.getChildCount(); ++i) {
+            AccessibilityNodeInfo child = root.getChild(i);
+            if (child.getViewIdResourceName().equals(id)) {
+                nodes.add(child);
+            } else {
+                this.findNodesById(nodes, child, id);
+            }
+        }
+
+        if (nodes.size() > 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isInBillView(List<AccessibilityNodeInfo> nodes) {
         AccessibilityNodeInfo lastNode = null, node;
+        nodes.clear();
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.bill.list:id/listItem")) {
+            return true;
+        }
 
-        List<AccessibilityNodeInfo> nodes;
-        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
-        if (nodes==null || nodes.size()<1){
-            return false;
-        }
-        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("筛选");
-        if (nodes==null || nodes.size()<1){
-            return false;
-        }
-        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("分类");
-        if (nodes==null || nodes.size()<1){
-            return false;
-        }
-        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("搜索");
-        if (nodes==null || nodes.size()<1){
+        if (1 == 1) {
             return false;
         }
 
-        if (1==1)
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
+        if (nodes == null || nodes.size() < 1) {
+            return false;
+        }
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("筛选");
+        if (nodes == null || nodes.size() < 1) {
+            return false;
+        }
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("分类");
+        if (nodes == null || nodes.size() < 1) {
+            return false;
+        }
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("搜索");
+        if (nodes == null || nodes.size() < 1) {
+            return false;
+        }
+
+        if (1 == 1)
             return true;
 
         AccessibilityNodeInfo node1 = this.getTheLastNode("com.alipay.mobile.bill.list:id/listItem");
@@ -164,21 +188,31 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         return true;
     }
 
-    private boolean isInMineView() {
+    private boolean isInMineView(List<AccessibilityNodeInfo> nodes) {
         AccessibilityNodeInfo lastNode = null, node;
+        nodes.clear();
 
-        List<AccessibilityNodeInfo> nodes;
-        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("总资产");
-        if (nodes==null || nodes.size()<1){
-            return false;
-        }
-        nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
-        if (nodes==null || nodes.size()<1){
-            return false;
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.antui:id/item_left_text")) {
+            if (nodes.get(0).getText().equals("账单")) {
+                return true;
+            }
         }
 
-        if (1==1)
-        return true;
+        if (1 == 1) {
+            return false;
+        }
+
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("总资产");
+        if (nodes == null || nodes.size() < 1) {
+            return false;
+        }
+        nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
+        if (nodes == null || nodes.size() < 1) {
+            return false;
+        }
+
+        if (1 == 1)
+            return true;
 
         String rn = nodes.get(0).getViewIdResourceName();
         nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId(rn);
@@ -210,11 +244,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         Log.i("className", "className:" + cName);
 
-        if (isInBillView()) {
+        List<AccessibilityNodeInfo> nodes=new java.util.ArrayList<AccessibilityNodeInfo>();
+        if (isInBillView(nodes)) {
 
-        } else if (isInMineView()) {
-            List<AccessibilityNodeInfo> nodes;
-            nodes =this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
+        } else if (isInMineView(nodes)) {
+            nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
             nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
         } else if (cName.equals("com.eg.android.AlipayGphone.AlipayLogin")) {
 
