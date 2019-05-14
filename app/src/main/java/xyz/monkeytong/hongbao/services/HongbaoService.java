@@ -59,9 +59,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private PowerUtil powerUtil;
     private SharedPreferences sharedPreferences;
     private int nid = 1;
+    private long firstTimeInBillList = 0;
     private PendingIntent contentIntent;
     private String notificationText = null;
     private int backedFromBusiness = 0;
+    private int backedFromChat = 0;
 
     /**
      * AccessibilityEvent
@@ -157,6 +159,16 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         return false;
     }
 
+    private boolean isInChat(List<AccessibilityNodeInfo> nodes) {
+        nodes.clear();
+        AccessibilityNodeInfo node = this.getTheLastNode("com.alipay.mobile.chatapp:id/biz_desc");
+        if (node != null) {
+            nodes.add(node);
+            return true;
+        }
+
+        return false;
+    }
 
     private boolean isInBill(List<AccessibilityNodeInfo> nodes) {
         AccessibilityNodeInfo lastNode = null, node;
@@ -176,7 +188,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         AccessibilityNodeInfo lastNode = null, node;
         nodes.clear();
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.bill.list:id/listItem")) {
-
 
             return true;
         }
@@ -267,6 +278,43 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         return this.getChild(root.getChild(i), index.substring(i + 1, index.length()));
     }
 
+    private void scanBillList() {
+        int delayFlag = 1 * 1000;
+        new android.os.Handler().postDelayed(
+                new Runnable() {
+                    public void run() {
+                        try {
+                            List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
+                            if (isInBillList(nodes)) {
+                                for (int i = 0; i < nodes.size(); ++i) {
+                                    AccessibilityNodeInfo node = nodes.get(i);
+                                    List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
+                                    if (findNodesById(items, node, "com.alipay.mobile.bill.list:id/categoryTextView")) {
+                                        String text = items.get(0).getText().toString();
+                                        if ("小买卖".equals(text)) {
+                                            if (clickBill(node)) {
+                                                break;
+                                            }
+                                        } else if ("其他".equals(text)) {
+                                            if (clickBill(node)) {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                back();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                delayFlag);
+
+
+    }
+
     private void watchChat(AccessibilityEvent event) {
         if (this.notificationText == null) return; //not open through notification;
         this.rootNodeInfo = getRootInActiveWindow();
@@ -274,7 +322,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (rootNodeInfo == null) return;
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getEventType() != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-                && event.getEventType() != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return;
+                && event.getEventType() != AccessibilityEvent.TYPE_WINDOWS_CHANGED
+                ) return;
         String cName = event.getClassName().toString();
 
         Log.i(TAG, "className:" + cName);
@@ -282,28 +331,19 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
         if (isInBillList(nodes)) {
-            for (int i = 0; i < nodes.size(); ++i) {
-                AccessibilityNodeInfo node = nodes.get(i);
-                List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
-                if (this.findNodesById(items, node, "com.alipay.mobile.bill.list:id/categoryTextView")) {
-                    String text = items.get(0).getText().toString();
-                    if ("小买卖".equals(text)) {
-                        if (this.clickBill(node)) {
-                            break;
-                        }
-                    } else if ("其他".equals(text)) {
-                        if (this.clickBill(node)) {
-                            break;
-                        }
-                    }
-                }
+            if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                this.scanBillList();
+            }
+        } else if (isInChat(nodes)) {
+            if (this.backedFromChat == 0) {
+                this.backedFromChat = 1;
+                back();
             }
         } else if (isInBusiness(nodes)) {
             if (this.backedFromBusiness == 0) {
                 this.backedFromBusiness = 1;
                 back();
             }
-            return;
         } else if (isInBill(nodes)) {
 
             AccessibilityNodeInfo root = nodes.get(0);
@@ -467,6 +507,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         this.notificationText = tip;
         this.backedFromBusiness = 0;
+        this.backedFromChat = 0;
         Parcelable parcelable = event.getParcelableData();
         if (parcelable instanceof Notification) {
             final Notification notification = (Notification) parcelable;
@@ -570,6 +611,22 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             back();
             signature.commentString = generateCommentString();
         }
+    }
+
+    private void home() {
+
+        int delayFlag = 1 * 500;
+        new android.os.Handler().postDelayed(
+                new Runnable() {
+                    public void run() {
+                        try {
+                            performGlobalAction(GLOBAL_ACTION_HOME);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                delayFlag);
     }
 
     private void back() {
