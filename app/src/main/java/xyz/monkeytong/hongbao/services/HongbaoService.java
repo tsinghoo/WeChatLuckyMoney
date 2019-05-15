@@ -315,6 +315,84 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     }
 
+    private void getBillInfo() {
+
+        int delayFlag = 1 * 500;
+        new android.os.Handler().postDelayed(
+                new Runnable() {
+                    public void run() {
+                        try {
+                            List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
+
+                            if (isInBill(nodes)) {
+
+                                AccessibilityNodeInfo root = nodes.get(0);
+                                AccessibilityNodeInfo node = getChild(root, "00000");
+                                if (node != null) {
+                                    String clsName = node.getClassName().toString();
+                                    String amount = "", name = "", mobile = "", reference = "";
+                                    if (clsName.equals("android.widget.Button")) {
+                                        node = getChild(root, "00008");
+                                        if (node != null) {
+                                            name = node.getContentDescription().toString();
+                                            if (name.contains(" ")) {
+                                                String[] s = name.split(" ");
+                                                name = s[0];
+                                                mobile = s[1];
+                                            }
+                                        }
+                                        node = getChild(root, "00001");
+                                        if (node != null) {
+                                            amount = node.getContentDescription().toString();
+                                        }
+                                        node = getChild(root, "00006");
+                                        if (node != null) {
+                                            reference = node.getContentDescription().toString();
+                                        }
+                                    } else if (clsName.equals("android.view.View")) {
+                                        node = getChild(root, "00001");
+                                        if (node != null) {
+                                            name = node.getContentDescription().toString();
+                                        }
+
+                                        node = getChild(root, "00002");
+                                        if (node != null) {
+                                            amount = node.getContentDescription().toString();
+                                        }
+
+                                        node = getChild(root, "00005");
+                                        if (node != null) {
+                                            reference = node.getContentDescription().toString();
+                                            if (reference.contains("-")) {
+                                                reference = reference.split("-")[1];
+                                            }
+                                        }
+                                    }
+
+                                    if ("".equals(amount + reference + name + mobile)) {
+                                        return;
+                                    }
+
+                                    synchronized (this) {
+                                        if (notificationText != null) {
+                                            sendNotification(amount, reference, name, mobile);
+                                            back();
+                                        }
+                                    }
+                                }
+                                return;
+
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                delayFlag);
+
+
+    }
+
     private void watchChat(AccessibilityEvent event) {
         if (this.notificationText == null) return; //not open through notification;
         this.rootNodeInfo = getRootInActiveWindow();
@@ -345,62 +423,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 back();
             }
         } else if (isInBill(nodes)) {
-
-            AccessibilityNodeInfo root = nodes.get(0);
-            AccessibilityNodeInfo node = this.getChild(root, "00000");
-            if (node != null) {
-                String clsName = node.getClassName().toString();
-                String amount = "", name = "", mobile = "", reference = "";
-                if (clsName.equals("android.widget.Button")) {
-                    node = this.getChild(root, "00008");
-                    if (node != null) {
-                        name = node.getContentDescription().toString();
-                        if (name.contains(" ")) {
-                            String[] s = name.split(" ");
-                            name = s[0];
-                            mobile = s[1];
-                        }
-                    }
-                    node = this.getChild(root, "00001");
-                    if (node != null) {
-                        amount = node.getContentDescription().toString();
-                    }
-                    node = this.getChild(root, "00006");
-                    if (node != null) {
-                        reference = node.getContentDescription().toString();
-                    }
-                } else if (clsName.equals("android.view.View")) {
-                    node = this.getChild(root, "00001");
-                    if (node != null) {
-                        name = node.getContentDescription().toString();
-                    }
-
-                    node = this.getChild(root, "00002");
-                    if (node != null) {
-                        amount = node.getContentDescription().toString();
-                    }
-
-                    node = this.getChild(root, "00005");
-                    if (node != null) {
-                        reference = node.getContentDescription().toString();
-                        if (reference.contains("-")) {
-                            reference = reference.split("-")[1];
-                        }
-                    }
-                }
-
-                if ("".equals(amount + reference + name + mobile)) {
-                    return;
-                }
-
-                synchronized (this) {
-                    if (this.notificationText != null) {
-                        this.sendNotification(amount, reference, name, mobile);
-                        back();
-                    }
-                }
+            if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                this.getBillInfo();
+                return;
             }
-            return;
 
         } else if (isInMineView(nodes)) {
             nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
