@@ -60,6 +60,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private SharedPreferences sharedPreferences;
     private int nid = 1;
     private long firstTimeInBillList = 0;
+    private int billInfoGot = 0;
     private PendingIntent contentIntent;
     private String notificationText = null;
     private int backedFromBusiness = 0;
@@ -242,6 +243,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             return false;
         } else {
             this.bills.add(bill);
+            this.billInfoGot = 0;
             node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
             return true;
         }
@@ -275,7 +277,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             return root.getChild(i);
         }
 
-        return this.getChild(root.getChild(i), index.substring(i + 1, index.length()));
+        return this.getChild(root.getChild(i), index.substring(1, index.length()));
     }
 
     private void scanBillList() {
@@ -293,17 +295,17 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                                         String text = items.get(0).getText().toString();
                                         if ("小买卖".equals(text)) {
                                             if (clickBill(node)) {
-                                                break;
+                                                return;
                                             }
                                         } else if ("其他".equals(text)) {
                                             if (clickBill(node)) {
-                                                break;
+                                                return;
                                             }
                                         }
                                     }
                                 }
 
-                                back();
+                                home(500);
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -317,79 +319,71 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private void getBillInfo() {
 
-        int delayFlag = 1 * 500;
-        new android.os.Handler().postDelayed(
-                new Runnable() {
-                    public void run() {
-                        try {
-                            List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
-
-                            if (isInBill(nodes)) {
-
-                                AccessibilityNodeInfo root = nodes.get(0);
-                                AccessibilityNodeInfo node = getChild(root, "00000");
-                                if (node != null) {
-                                    String clsName = node.getClassName().toString();
-                                    String amount = "", name = "", mobile = "", reference = "";
-                                    if (clsName.equals("android.widget.Button")) {
-                                        node = getChild(root, "00008");
-                                        if (node != null) {
-                                            name = node.getContentDescription().toString();
-                                            if (name.contains(" ")) {
-                                                String[] s = name.split(" ");
-                                                name = s[0];
-                                                mobile = s[1];
-                                            }
-                                        }
-                                        node = getChild(root, "00001");
-                                        if (node != null) {
-                                            amount = node.getContentDescription().toString();
-                                        }
-                                        node = getChild(root, "00006");
-                                        if (node != null) {
-                                            reference = node.getContentDescription().toString();
-                                        }
-                                    } else if (clsName.equals("android.view.View")) {
-                                        node = getChild(root, "00001");
-                                        if (node != null) {
-                                            name = node.getContentDescription().toString();
-                                        }
-
-                                        node = getChild(root, "00002");
-                                        if (node != null) {
-                                            amount = node.getContentDescription().toString();
-                                        }
-
-                                        node = getChild(root, "00005");
-                                        if (node != null) {
-                                            reference = node.getContentDescription().toString();
-                                            if (reference.contains("-")) {
-                                                reference = reference.split("-")[1];
-                                            }
-                                        }
-                                    }
-
-                                    if ("".equals(amount + reference + name + mobile)) {
-                                        return;
-                                    }
-
-                                    synchronized (this) {
-                                        if (notificationText != null) {
-                                            sendNotification(amount, reference, name, mobile);
-                                            back();
-                                        }
-                                    }
-                                }
-                                return;
-
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+        List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
+        Log.i(TAG, "getting bill info");
+        if (isInBill(nodes)) {
+            Log.i(TAG, "getting bill info: is in bill");
+            AccessibilityNodeInfo root = nodes.get(0);
+            AccessibilityNodeInfo node = getChild(root, "00000");
+            if (node != null) {
+                String clsName = node.getClassName().toString();
+                String amount = "", name = "", mobile = "", reference = "";
+                if (clsName.equals("android.widget.Button")) {
+                    node = getChild(root, "000080");
+                    if (node != null) {
+                        name = node.getText().toString();
+                        if (name.contains(" ")) {
+                            String[] s = name.split(" ");
+                            name = s[0];
+                            mobile = s[1];
                         }
                     }
-                },
-                delayFlag);
+                    node = getChild(root, "00001");
+                    if (node != null) {
+                        amount = node.getText().toString();
+                    }
+                    node = getChild(root, "000060");
+                    if (node != null) {
+                        reference = node.getText().toString();
+                    }
+                } else if (clsName.equals("android.view.View")) {
+                    node = getChild(root, "000001");
+                    if (node != null) {
+                        name = node.getText().toString();
+                    }
 
+                    node = getChild(root, "00001");
+                    if (node != null) {
+                        amount = node.getText().toString();
+                    }
+
+                    node = getChild(root, "000040");
+                    if (node != null) {
+                        reference = node.getText().toString();
+                        if (reference.contains("-")) {
+                            reference = reference.split("-")[1];
+                        }
+                    }
+                }
+
+                if ("".equals(amount + reference + name + mobile)) {
+                    Log.i(TAG, "amount=" + amount);
+                    Log.i(TAG, "reference=" + reference);
+                    Log.i(TAG, "name=" + name);
+                    Log.i(TAG, "mobile=" + mobile);
+                    return;
+                }
+
+                this.billInfoGot = 1;
+                synchronized (this) {
+                    if (notificationText != null) {
+                        sendNotification(amount, reference, name, mobile);
+                        back(500);
+                    }
+                }
+            }
+
+        }
 
     }
 
@@ -404,36 +398,44 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 ) return;
         String cName = event.getClassName().toString();
 
-        Log.i(TAG, "className:" + cName);
+        Log.d(TAG, cName);
         Log.i(TAG, "" + event.getEventType());
 
         List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
         if (isInBillList(nodes)) {
+            Log.i(TAG, "is in bill list");
             if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                Log.i(TAG, "to scan bill list");
                 this.scanBillList();
             }
         } else if (isInChat(nodes)) {
+            Log.i(TAG, "is in chat");
             if (this.backedFromChat == 0) {
                 this.backedFromChat = 1;
-                back();
+                back(1000);
             }
         } else if (isInBusiness(nodes)) {
+            Log.d(TAG, "is in business");
             if (this.backedFromBusiness == 0) {
                 this.backedFromBusiness = 1;
-                back();
+                back(1500);
             }
         } else if (isInBill(nodes)) {
-            if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            Log.i(TAG, "is in bill");
+            if (this.billInfoGot == 0) {
+                Log.i(TAG, "to get bill info");
                 this.getBillInfo();
                 return;
             }
 
         } else if (isInMineView(nodes)) {
+            Log.i(TAG, "is in mine view");
             nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
             if (nodes != null && nodes.size() > 0) {
                 nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
         } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/sigle_tab_bg")) {
+            Log.i(TAG, "is in tab page");
             if (nodes.size() > 0) {
                 nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
@@ -522,6 +524,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private boolean watchNotifications(AccessibilityEvent event) {
+        Log.i(TAG, "watch notification");
         // Not a notification
         if (event.getEventType() != AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED)
             return false;
@@ -634,14 +637,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             mMutex = false;
             mLuckyMoneyPicked = false;
             mUnpackCount = 0;
-            back();
+            back(500);
             signature.commentString = generateCommentString();
         }
     }
 
-    private void home() {
+    private void home(int delayFlag) {
 
-        int delayFlag = 1 * 500;
         new android.os.Handler().postDelayed(
                 new Runnable() {
                     public void run() {
@@ -655,13 +657,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 delayFlag);
     }
 
-    private void back() {
-
-        int delayFlag = 1 * 1000;
+    private void back(int delayFlag) {
+        Log.i(TAG, "to press back");
         new android.os.Handler().postDelayed(
                 new Runnable() {
                     public void run() {
                         try {
+                            Log.i(TAG, "press back");
                             performGlobalAction(GLOBAL_ACTION_BACK);
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -672,8 +674,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void sendNotification(String amount, String reference, String name, String mobile) {
-
+        Log.i(TAG, "sending notification");
         if ("".equals(amount + reference + name + mobile)) {
+            Log.i(TAG, "skip sending noti");
             return;
         }
 
