@@ -284,7 +284,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         return this.getChild(root.getChild(i), index.substring(1, index.length()));
     }
 
-    private void scanBillList() {
+    private synchronized void scanBillList() {
+
+        if (firstTimeInBillList == 0) {
+            Log.i(TAG, "to scan bill list");
+            firstTimeInBillList = 1;
+        } else {
+            return;
+        }
+
         int delayFlag = 1 * 3000;
         new android.os.Handler().postDelayed(
                 new Runnable() {
@@ -381,6 +389,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 synchronized (this) {
                     if (notificationText != null) {
                         saveNotification(amount, reference, name, mobile);
+                        firstTimeInBillList = 0;
                         back(500);
                     }
                 }
@@ -413,6 +422,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     Log.i(TAG, "to refresh bill list");
                     billListRefreshed = 1;
                     this.refreshBillList(1000);
+                } else {
+                    scanBillList();
                 }
             }
         } else if (isInChat(nodes)) {
@@ -451,7 +462,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
     }
 
-    private void refreshBillList(int delayFlag) {
+    private synchronized void refreshBillList(int delayFlag) {
 
         new android.os.Handler().postDelayed(
                 new Runnable() {
@@ -465,18 +476,18 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                             if (320 == dpi) {//720p
                                 Log.i(TAG, "dpi 320");
                                 path.moveTo(355, 355);
-                                path.lineTo(355, 500);
+                                path.lineTo(355, 600);
                             } else if (480 == dpi) {//1080p
                                 Log.i(TAG, "dpi 480");
                                 path.moveTo(533, 533);
-                                path.lineTo(533, 900);
+                                path.lineTo(533, 1000);
                             } else { //1440
                                 Log.i(TAG, "dpi 1440");
                                 path.moveTo(720, 720);
-                                path.lineTo(720, 1000);
+                                path.lineTo(720, 1200);
                             }
                             GestureDescription.Builder builder = new GestureDescription.Builder();
-                            GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 3000, 200L)).build();
+                            GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 1000, 200L)).build();
                             dispatchGesture(gestureDescription, new GestureResultCallback() {
                                 @Override
                                 public void onCompleted(GestureDescription gestureDescription) {
@@ -595,6 +606,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         Log.i(TAG, "valid notification received");
         this.notificationText = tip;
         this.billListRefreshed = 0;
+        this.firstTimeInBillList = 0;
         this.messages.clear();
         this.backedFromBusiness = 0;
         this.backedFromChat = 0;
