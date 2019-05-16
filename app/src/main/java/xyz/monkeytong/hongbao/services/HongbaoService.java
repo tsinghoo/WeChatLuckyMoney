@@ -62,6 +62,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private SharedPreferences sharedPreferences;
     private int nid = 1;
     private long firstTimeInBillList = 0;
+    private int billListRefreshed = 0;
     private int billInfoGot = 0;
     private PendingIntent contentIntent;
     private String notificationText = null;
@@ -76,7 +77,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (sharedPreferences == null) return;
-
         setCurrentActivityName(event);
 
         /* 检测通知消息 */
@@ -409,8 +409,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             Log.d(TAG, "is in bill list");
             if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 Log.i(TAG, "is in bill list");
-                Log.i(TAG, "to refresh bill list");
-                this.refreshBillList(1000);
+                if (billListRefreshed == 0) {
+                    Log.i(TAG, "to refresh bill list");
+                    billListRefreshed = 1;
+                    this.refreshBillList(1000);
+                }
             }
         } else if (isInChat(nodes)) {
             Log.i(TAG, "is in chat");
@@ -473,7 +476,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                                 path.lineTo(720, 1000);
                             }
                             GestureDescription.Builder builder = new GestureDescription.Builder();
-                            GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 3000, 100L)).build();
+                            GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 3000, 200L)).build();
                             dispatchGesture(gestureDescription, new GestureResultCallback() {
                                 @Override
                                 public void onCompleted(GestureDescription gestureDescription) {
@@ -591,6 +594,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (!tip.contains(Alipay_NOTIFICATION_TIP) && !tip.contains("成功收款")) return true;
         Log.i(TAG, "valid notification received");
         this.notificationText = tip;
+        this.billListRefreshed = 0;
         this.messages.clear();
         this.backedFromBusiness = 0;
         this.backedFromChat = 0;

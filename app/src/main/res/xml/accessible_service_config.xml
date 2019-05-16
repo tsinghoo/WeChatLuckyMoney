@@ -8,4 +8,5 @@
     android:notificationTimeout="10"
     android:settingsActivity="xyz.monkeytong.hongbao.activities.SettingsActivity"
     android:accessibilityFlags="flagDefault|flagReportViewIds|flagIncludeNotImportantViews|flagRequestEnhancedWebAccessibility"
+    android:canPerformGestures="true"
     android:canRetrieveWindowContent="true"/>
