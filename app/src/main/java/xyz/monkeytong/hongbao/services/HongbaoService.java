@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.util.DisplayMetrics;
+
 import java.util.ArrayList;
 
 import xyz.monkeytong.hongbao.R;
@@ -56,7 +57,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private HongbaoSignature signature = new HongbaoSignature();
 
     private List<String> bills = new java.util.ArrayList<String>();
-    private List<String> messages=new ArrayList<String>();
+    private List<String> messages = new ArrayList<String>();
     private PowerUtil powerUtil;
     private SharedPreferences sharedPreferences;
     private int nid = 1;
@@ -241,10 +242,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         items.clear();
 
         if (billExist(bill)) {
+            Log.i(TAG, "bill already clicked");
             return false;
         } else {
             this.bills.add(bill);
             this.billInfoGot = 0;
+            Log.i(TAG, "clicking bill");
             node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
             return true;
         }
@@ -282,7 +285,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void scanBillList() {
-        int delayFlag = 1 * 1000;
+        int delayFlag = 1 * 3000;
         new android.os.Handler().postDelayed(
                 new Runnable() {
                     public void run() {
@@ -291,6 +294,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                             if (isInBillList(nodes)) {
                                 for (int i = 0; i < nodes.size(); ++i) {
                                     AccessibilityNodeInfo node = nodes.get(i);
+                                    Log.i(TAG, "checking item " + i);
                                     List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
                                     if (findNodesById(items, node, "com.alipay.mobile.bill.list:id/categoryTextView")) {
                                         String text = items.get(0).getText().toString();
@@ -369,10 +373,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
 
                 if ("".equals(amount + reference + name + mobile)) {
-                    Log.i(TAG, "amount=" + amount);
-                    Log.i(TAG, "reference=" + reference);
-                    Log.i(TAG, "name=" + name);
-                    Log.i(TAG, "mobile=" + mobile);
+                    Log.i(TAG, "bill info not ready");
                     return;
                 }
 
@@ -401,14 +402,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         String cName = event.getClassName().toString();
 
         Log.d(TAG, cName);
-        Log.i(TAG, "" + event.getEventType());
+        Log.d(TAG, "" + event.getEventType());
 
         List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
         if (isInBillList(nodes)) {
-            Log.i(TAG, "is in bill list");
+            Log.d(TAG, "is in bill list");
             if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-                Log.i(TAG, "to scan bill list");
-                this.scanBillList();
+                Log.i(TAG, "is in bill list");
+                Log.i(TAG, "to refresh bill list");
+                this.refreshBillList(1000);
             }
         } else if (isInChat(nodes)) {
             Log.i(TAG, "is in chat");
@@ -419,6 +421,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         } else if (isInBusiness(nodes)) {
             Log.d(TAG, "is in business");
             if (this.backedFromBusiness == 0) {
+                Log.i(TAG, "back from business");
                 this.backedFromBusiness = 1;
                 back(1500);
             }
@@ -443,6 +446,57 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             }
         } else {
         }
+    }
+
+    private void refreshBillList(int delayFlag) {
+
+        new android.os.Handler().postDelayed(
+                new Runnable() {
+                    public void run() {
+                        try {
+                            Log.i(TAG, "refreshBillList");
+                            DisplayMetrics metrics = getResources().getDisplayMetrics();
+                            float dpi = metrics.densityDpi;
+                            Log.i(TAG, "dpi=" + dpi);
+                            Path path = new Path();
+                            if (320 == dpi) {//720p
+                                Log.i(TAG, "dpi 320");
+                                path.moveTo(355, 355);
+                                path.lineTo(355, 500);
+                            } else if (480 == dpi) {//1080p
+                                Log.i(TAG, "dpi 480");
+                                path.moveTo(533, 533);
+                                path.lineTo(533, 900);
+                            } else { //1440
+                                Log.i(TAG, "dpi 1440");
+                                path.moveTo(720, 720);
+                                path.lineTo(720, 1000);
+                            }
+                            GestureDescription.Builder builder = new GestureDescription.Builder();
+                            GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 3000, 100L)).build();
+                            dispatchGesture(gestureDescription, new GestureResultCallback() {
+                                @Override
+                                public void onCompleted(GestureDescription gestureDescription) {
+                                    Log.i(TAG, "refreshBillList onCompleted");
+                                    mMutex = false;
+                                    super.onCompleted(gestureDescription);
+                                    scanBillList();
+                                }
+
+                                @Override
+                                public void onCancelled(GestureDescription gestureDescription) {
+                                    Log.i(TAG, "refreshBillList onCancelled");
+                                    mMutex = false;
+                                    super.onCancelled(gestureDescription);
+                                }
+                            }, null);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                delayFlag);
+
     }
 
     private void openPacket() {
@@ -526,7 +580,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private boolean watchNotifications(AccessibilityEvent event) {
-        Log.i(TAG, "watch notification");
+        Log.d(TAG, "watch notification");
         // Not a notification
         if (event.getEventType() != AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED)
             return false;
@@ -535,7 +589,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         // Not a hongbao
         String tip = event.getText().get(0).toString();
         if (!tip.contains(Alipay_NOTIFICATION_TIP) && !tip.contains("成功收款")) return true;
-
+        Log.i(TAG, "valid notification received");
         this.notificationText = tip;
         this.messages.clear();
         this.backedFromBusiness = 0;
@@ -677,16 +731,16 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void saveNotification(String amount, String reference, String name, String mobile) {
-        String msg=String.format("%s|#|%s|#|%s|#|%s", amount, reference, name, mobile);
-        Log.i(TAG, "saving notification:"+msg);
+        String msg = String.format("%s|#|%s|#|%s|#|%s", amount, reference, name, mobile);
+        Log.i(TAG, "saving notification:" + msg);
         messages.add(msg);
     }
 
-    
-    private void sendAllNotification(){
-            this.notificationText = null;
-        for(int i=0;i<messages.size();++i){
-            String msg=messages.get(i);
+
+    private void sendAllNotification() {
+        this.notificationText = null;
+        for (int i = 0; i < messages.size(); ++i) {
+            String msg = messages.get(i);
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                     .setContentTitle("支付宝转账监控")
                     .setSmallIcon(R.mipmap.icon_alipay)
