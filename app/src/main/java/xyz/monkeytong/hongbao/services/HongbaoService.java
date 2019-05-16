@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.util.DisplayMetrics;
+import java.util.ArrayList;
 
 import xyz.monkeytong.hongbao.R;
 import xyz.monkeytong.hongbao.utils.HongbaoSignature;
@@ -55,7 +56,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private HongbaoSignature signature = new HongbaoSignature();
 
     private List<String> bills = new java.util.ArrayList<String>();
-
+    private List<String> messages=new ArrayList<String>();
     private PowerUtil powerUtil;
     private SharedPreferences sharedPreferences;
     private int nid = 1;
@@ -304,8 +305,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                                         }
                                     }
                                 }
-
-                                home(500);
+                                sendAllNotification();
+                                back(500);
+                                home(1000);
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -377,7 +379,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 this.billInfoGot = 1;
                 synchronized (this) {
                     if (notificationText != null) {
-                        sendNotification(amount, reference, name, mobile);
+                        saveNotification(amount, reference, name, mobile);
                         back(500);
                     }
                 }
@@ -535,6 +537,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (!tip.contains(Alipay_NOTIFICATION_TIP) && !tip.contains("成功收款")) return true;
 
         this.notificationText = tip;
+        this.messages.clear();
         this.backedFromBusiness = 0;
         this.backedFromChat = 0;
         Parcelable parcelable = event.getParcelableData();
@@ -673,6 +676,47 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 delayFlag);
     }
 
+    private void saveNotification(String amount, String reference, String name, String mobile) {
+        String msg=String.format("%s|#|%s|#|%s|#|%s", amount, reference, name, mobile);
+        Log.i(TAG, "saving notification:"+msg);
+        messages.add(msg);
+    }
+
+    
+    private void sendAllNotification(){
+            this.notificationText = null;
+        for(int i=0;i<messages.size();++i){
+            String msg=messages.get(i);
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+                    .setContentTitle("支付宝转账监控")
+                    .setSmallIcon(R.mipmap.icon_alipay)
+                    .setContentText(msg)
+                    .setContentIntent(this.contentIntent);
+
+            this.notificationText = null;
+            final Notification notification = builder.build();
+            //notification.flags = Notification.FLAG_ONGOING_EVENT;
+
+            final int nid = this.nid++;
+            //int delayFlag = sharedPreferences.getInt("pref_open_delay", 0) * 1000;
+            int delayFlag = 1 * 500;
+            new android.os.Handler().postDelayed(
+                    new Runnable() {
+                        public void run() {
+                            try {
+
+                                NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+                                notificationManager.notify(nid, notification);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    },
+                    delayFlag);
+        }
+    }
+
     private void sendNotification(String amount, String reference, String name, String mobile) {
         Log.i(TAG, "sending notification");
         if ("".equals(amount + reference + name + mobile)) {
@@ -683,7 +727,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 .setContentTitle("支付宝转账监控")
                 .setSmallIcon(R.mipmap.icon_alipay)
-                .setContentText("[" + amount + ":" + reference + ":" + name + ":" + mobile + "]")
+                .setContentText(amount + ":" + reference + ":" + name + ":" + mobile)
                 .setContentIntent(this.contentIntent);
 
         this.notificationText = null;
