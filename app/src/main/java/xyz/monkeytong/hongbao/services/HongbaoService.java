@@ -354,7 +354,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     }
                     node = getChild(root, "00001");
                     if (node != null) {
-                        amount = node.getText().toString();
+                        amount = node.getText().toString().replaceAll(",", "");
                     }
                     node = getChild(root, "000060");
                     if (node != null) {
