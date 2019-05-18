@@ -300,7 +300,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         try {
                             List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
                             if (isInBillList(nodes)) {
-                                for (int i = 0; i < nodes.size(); ++i) {
+                                for (int i = 0; i < nodes.size() && i < 3; ++i) {
                                     AccessibilityNodeInfo node = nodes.get(i);
                                     Log.i(TAG, "checking item " + i);
                                     List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
