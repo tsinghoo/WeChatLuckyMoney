@@ -421,7 +421,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 if (billListRefreshed == 0) {
                     Log.i(TAG, "to refresh bill list");
                     billListRefreshed = 1;
-                    this.refreshBillList(1000);
+                    this.refreshBillList(200);
                 } else {
                     scanBillList();
                 }
