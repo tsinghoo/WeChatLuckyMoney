@@ -4,7 +4,10 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
@@ -26,6 +29,8 @@ import xyz.monkeytong.hongbao.utils.PowerUtil;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.support.v4.app.NotificationCompat;
+
+import org.json.JSONObject;
 
 import java.util.Date;
 import java.util.List;
@@ -68,6 +73,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private String notificationText = null;
     private int backedFromBusiness = 0;
     private int backedFromChat = 0;
+    private JSONObject payInfo = null;
 
     /**
      * AccessibilityEvent
@@ -266,6 +272,123 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         return false;
     }
 
+    private boolean isInFirstPage(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node;
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.openplatform:id/app_text")) {
+            if (nodes.size() > 2 && nodes.get(1).getText().equals("转账")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isInTransferPage(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node1 = null, node2 = null;
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.transferapp:id/to_account_view")) {
+            if (nodes.size() > 0) {
+                node1 = nodes.get(0);
+            }
+        }
+
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.transferapp:id/to_card_view")) {
+            if (nodes.size() > 0) {
+                node2 = nodes.get(0);
+            }
+        }
+
+        if (node1 != null && node2 != null) {
+            nodes.clear();
+            nodes.add(node1);
+            nodes.add(node2);
+            return true;
+        }
+
+
+        return false;
+    }
+
+    private boolean isInTransferToAccountPage(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node1 = null, node2 = null;
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.transferapp:id/tf_toAccountNextBtn")) {
+            if (nodes.size() > 0) {
+                node1 = nodes.get(0);
+            }
+        }
+
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.antui:id/input_edit")) {
+            if (nodes.size() > 0) {
+                node2 = nodes.get(0);
+            }
+        }
+
+        if (node1 != null && node2 != null) {
+            nodes.clear();
+            nodes.add(node1);
+            nodes.add(node2);
+            return true;
+        }
+
+
+        return false;
+    }
+
+    private boolean isInInputAmountToAccount(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node1 = null, node2 = null;
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.antui:id/amount_edit")) {
+            if (nodes.size() > 0) {
+                node1 = nodes.get(0);
+            }
+        }
+
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.transferapp:id/tf_nextBtn")) {
+            if (nodes.size() > 0) {
+                node2 = nodes.get(0);
+            }
+        }
+
+        if (node1 != null && node2 != null) {
+            nodes.clear();
+            nodes.add(node1);
+            nodes.add(node2);
+            return true;
+        }
+
+
+        return false;
+    }
+
+    private boolean isInInputToCard(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node1 = null, node2 = null;
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.ui:id/content")) {
+
+            if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.transferapp:id/btn_next")) {
+                if (nodes.size() == 4) {
+                    return true;
+                }
+            }
+        }
+
+
+        return false;
+    }
+
     AccessibilityNodeInfo getChild(AccessibilityNodeInfo root, String index) {
         if (index.length() == 0) {
             return root;
@@ -401,7 +524,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void watchChat(AccessibilityEvent event) {
-        if (this.notificationText == null) return; //not open through notification;
+        if (this.notificationText == null && this.payInfo == null)
+            return; //not open through notification;
         this.rootNodeInfo = getRootInActiveWindow();
 
         if (rootNodeInfo == null) return;
@@ -417,6 +541,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
         if (isInBillList(nodes)) {
             Log.d(TAG, "is in bill list");
+            if (this.payInfo != null) {
+                back(500);
+                return;
+            }
             if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 Log.i(TAG, "is in bill list");
                 if (billListRefreshed == 0) {
@@ -429,12 +557,21 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             }
         } else if (isInChat(nodes)) {
             Log.i(TAG, "is in chat");
+
+            if (this.payInfo != null) {
+                back(500);
+                return;
+            }
             if (this.backedFromChat == 0) {
                 this.backedFromChat = 1;
                 back(1000);
             }
         } else if (isInBusiness(nodes)) {
             Log.d(TAG, "is in business");
+            if (this.payInfo != null) {
+                back(500);
+                return;
+            }
             if (this.backedFromBusiness == 0) {
                 Log.i(TAG, "back from business");
                 this.backedFromBusiness = 1;
@@ -442,24 +579,106 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             }
         } else if (isInBill(nodes)) {
             Log.i(TAG, "is in bill");
+            if (this.payInfo != null) {
+                back(500);
+                return;
+            }
             if (this.billInfoGot == 0) {
                 Log.i(TAG, "to get bill info");
                 this.getBillInfo();
                 return;
             }
 
-        } else if (isInMineView(nodes)) {
-            Log.i(TAG, "is in mine view");
-            nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
-            if (nodes != null && nodes.size() > 0) {
-                nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        } else if (isInTransferPage(nodes)) {
+            Log.i(TAG, "is in first page to click transfer app");
+            if (this.payInfo != null) {
+                nodes.get(1).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            } else {
+                back(500);
             }
-        } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/sigle_tab_bg")) {
-            Log.i(TAG, "is in tab page");
-            if (nodes.size() > 0) {
-                nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        } else if (isInTransferToAccountPage(nodes)) {
+            Log.i(TAG, "is in first page to click transfer app");
+            if (this.payInfo != null) {
+                ClipboardManager clipboard = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("text", payInfo.optString("account", ""));
+                clipboard.setPrimaryClip(clip);
+                if (nodes.get(1).getText().toString().indexOf("手机号码") >= 0) {
+                    nodes.get(1).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                    nodes.get(1).performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                    nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }
+            } else {
+                back(500);
+            }
+        } else if (isInInputAmountToAccount(nodes)) {
+            Log.i(TAG, "is in first page to click transfer app");
+            if (this.payInfo != null) {
+                ClipboardManager clipboard = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("text", payInfo.optString("amount", "0.01"));
+                clipboard.setPrimaryClip(clip);
+
+                nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                //nodes.get(1).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                payInfo = null;
+            } else {
+                back(500);
+            }
+        } else if (isInInputToCard(nodes)) {
+            Log.i(TAG, "is in card info page");
+            if (this.payInfo != null) {
+                if (nodes.get(0).getText().toString().indexOf("收款人姓名") >= 0) {
+                    ClipboardManager clipboard = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
+                    int i = 0;
+
+                    ClipData clip = ClipData.newPlainText("text", payInfo.optString("name", ""));
+                    clipboard.setPrimaryClip(clip);
+                    nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                    nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
+
+                    clip = ClipData.newPlainText("text", payInfo.optString("card", ""));
+                    clipboard.setPrimaryClip(clip);
+                    nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                    nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
+
+                    clip = ClipData.newPlainText("text", payInfo.optString("amount", ""));
+                    clipboard.setPrimaryClip(clip);
+                    nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                    nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                    payInfo = null;
+                }
+            } else {
+                back(500);
             }
         } else {
+            if (this.payInfo != null) {
+                if (isInFirstPage(nodes)) {
+                    Log.i(TAG, "is in first page to click transfer app");
+
+                    nodes.get(1).getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+
+                } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.openplatform:id/tab_description")) {
+                    Log.i(TAG, "is in tab page, to click first page");
+                    if (nodes.size() > 0) {
+                        nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    }
+                }
+
+                return;
+            }
+
+            if (isInMineView(nodes)) {
+                Log.i(TAG, "is in mine view");
+                nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
+                if (nodes != null && nodes.size() > 0) {
+                    nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }
+            } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/sigle_tab_bg")) {
+                Log.i(TAG, "is in tab page, to click my page");
+                if (nodes.size() > 0) {
+                    nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }
+            }
         }
     }
 
@@ -919,6 +1138,49 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         Log.i(TAG, "service connected");
         super.onServiceConnected();
         this.watchFlagsFromPreference();
+        registerClipEvents();
+    }
+
+
+    private void registerClipEvents() {
+
+        final ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+
+        manager.addPrimaryClipChangedListener(new ClipboardManager.OnPrimaryClipChangedListener() {
+            @Override
+            public void onPrimaryClipChanged() {
+
+                try {
+                    if (manager.hasPrimaryClip() && manager.getPrimaryClip().getItemCount() > 0) {
+
+                        CharSequence text = manager.getPrimaryClip().getItemAt(0).getText();
+
+                        if (text != null) {
+                            Log.i(TAG, "copied text: " + text);
+
+
+                            Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.eg.android.AlipayGphone");
+                            //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
+                            intent.setAction("android.intent.action.MAIN");
+                            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                            //intent.putExtra("data", "在此处添加数据信息");
+                            startActivity(intent);
+
+                            JSONObject json = new JSONObject(text.toString());
+                            payInfo = json;
+
+
+                            if ("alipay".equals(json.getString("type"))) {
+
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
     }
 
     private void watchFlagsFromPreference() {
