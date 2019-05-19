@@ -385,6 +385,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     return;
                 }
 
+                amount = amount.replaceAll(",", "");
                 this.billInfoGot = 1;
                 synchronized (this) {
                     if (notificationText != null) {
