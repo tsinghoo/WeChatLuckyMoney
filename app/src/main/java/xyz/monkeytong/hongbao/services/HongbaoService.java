@@ -618,11 +618,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 signature.cleanSignature();
                 this.contentIntent = notification.contentIntent;
                 this.powerUtil.handleWakeLock(true);
+                //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
+                Thread.sleep(500);
                 int delayFlag = 1 * 1000;
                 new android.os.Handler().postDelayed(
                         new Runnable() {
                             public void run() {
                                 try {
+                                    //performGlobalAction(GLOBAL_ACTION_BACK);
+                                    //back
                                     notification.contentIntent.send();
                                 } catch (Exception e) {
                                     e.printStackTrace();
@@ -911,6 +915,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     @Override
     public void onServiceConnected() {
+        Log.i(TAG, "service connected");
         super.onServiceConnected();
         this.watchFlagsFromPreference();
     }
