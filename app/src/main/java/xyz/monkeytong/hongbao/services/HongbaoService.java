@@ -466,39 +466,80 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 String clsName = node.getClassName().toString();
                 String amount = "", name = "", mobile = "", reference = "";
                 if (clsName.equals("android.widget.Button")) {
+                    node = getChild(root, "00001");
+                    if (node != null && node.getText() != null) {
+                        amount = node.getText().toString().replaceAll(",", "");
+                    } else {
+                        if (node != null && node.getContentDescription() != null) {
+                            amount = node.getContentDescription().toString().replaceAll(",", "");
+                        }
+                    }
+
                     node = getChild(root, "000080");
-                    if (node != null) {
+                    if (node != null && node.getText() != null) {
                         name = node.getText().toString();
                         if (name.contains(" ")) {
                             String[] s = name.split(" ");
                             name = s[0];
                             mobile = s[1];
                         }
+                    } else {
+
+                        node = getChild(root, "00008");
+                        if (node != null && node.getContentDescription() != null) {
+                            name = node.getContentDescription().toString();
+                            if (name.contains(" ")) {
+                                String[] s = name.split(" ");
+                                name = s[0];
+                                mobile = s[1];
+                            }
+                        }
                     }
-                    node = getChild(root, "00001");
-                    if (node != null) {
-                        amount = node.getText().toString().replaceAll(",", "");
-                    }
+
+
                     node = getChild(root, "000060");
-                    if (node != null) {
+                    if (node != null && node.getText() != null) {
                         reference = node.getText().toString();
+                    } else {
+                        node = getChild(root, "00006");
+                        if (node != null && node.getContentDescription() != null) {
+                            reference = node.getContentDescription().toString();
+                        }
                     }
                 } else if (clsName.equals("android.view.View")) {
                     node = getChild(root, "000001");
-                    if (node != null) {
+                    if (node != null && node.getText() != null) {
                         name = node.getText().toString();
+                    } else {
+                        node = getChild(root, "00001");
+                        if (node != null && node.getContentDescription() != null) {
+                            name = node.getContentDescription().toString();
+                        }
                     }
 
                     node = getChild(root, "00001");
-                    if (node != null) {
+                    if (node != null && node.getText() != null) {
                         amount = node.getText().toString();
+                    } else {
+                        node = getChild(root, "00002");
+                        if (node != null && node.getContentDescription() != null) {
+                            amount = node.getContentDescription().toString();
+                        }
                     }
 
                     node = getChild(root, "000040");
-                    if (node != null) {
+                    if (node != null && node.getText() != null) {
                         reference = node.getText().toString();
                         if (reference.contains("-")) {
                             reference = reference.split("-")[1];
+                        }
+                    } else {
+                        node = getChild(root, "00005");
+                        if (node != null && node.getContentDescription() != null) {
+                            reference = node.getContentDescription().toString();
+                            if (reference.contains("-")) {
+                                reference = reference.split("-")[1];
+                            }
                         }
                     }
                 }
@@ -1229,6 +1270,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (key.equals("pref_watch_on_lock")) {
             Boolean changedValue = sharedPreferences.getBoolean(key, false);
             this.powerUtil.handleWakeLock(changedValue);
+            this.notificationText = "begin test";
         }
     }
 
