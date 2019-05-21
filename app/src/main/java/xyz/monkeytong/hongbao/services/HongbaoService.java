@@ -442,6 +442,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                                 }
                                 sendAllNotification();
                                 back(500);
+                                sleep(500);
                                 home(1000);
                             }
                         } catch (Exception e) {
@@ -665,11 +666,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
                 nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_PASTE);
                 nodes.get(1).performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                try {
-                    Thread.sleep(3000);
-                } catch (Exception ex) {
-
-                }
+                sleep(3000);
 
 
                 this.rootNodeInfo = getRootInActiveWindow();
@@ -701,19 +698,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     clipboard.setPrimaryClip(clip);
                     nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
                     nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
-                    try {
-                        Thread.sleep(1000);
-                    } catch (Exception ex) {
-                    }
+                    sleep(1000);
 
                     clip = ClipData.newPlainText("text", payInfo.optString("card", ""));
                     clipboard.setPrimaryClip(clip);
                     nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
                     nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
-                    try {
-                        Thread.sleep(1000);
-                    } catch (Exception ex) {
-                    }
+                    sleep(1000);
 
                     clip = ClipData.newPlainText("text", payInfo.optString("amount", ""));
                     clipboard.setPrimaryClip(clip);
@@ -913,23 +904,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 this.contentIntent = notification.contentIntent;
                 this.powerUtil.handleWakeLock(true);
                 //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
-                Thread.sleep(500);
-                int delayFlag = 1 * 1000;
-                new android.os.Handler().postDelayed(
-                        new Runnable() {
-                            public void run() {
-                                try {
-                                    //performGlobalAction(GLOBAL_ACTION_BACK);
-                                    //back
-                                    notification.contentIntent.send();
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        },
-                        delayFlag);
-
-
+                sleep(500);
+                notification.contentIntent.send();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1067,21 +1043,20 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
             final int nid = this.nid++;
             //int delayFlag = sharedPreferences.getInt("pref_open_delay", 0) * 1000;
-            int delayFlag = 1 * 500;
-            new android.os.Handler().postDelayed(
-                    new Runnable() {
-                        public void run() {
-                            try {
 
-                                NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-                                notificationManager.notify(nid, notification);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    },
-                    delayFlag);
+            notificationManager.notify(nid, notification);
+
+            sleep(1000);
+        }
+    }
+
+    private void sleep(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (Exception ex) {
+
         }
     }
 
@@ -1105,23 +1080,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         final int nid = this.nid++;
         this.notificationText = null;
         //int delayFlag = sharedPreferences.getInt("pref_open_delay", 0) * 1000;
-        int delayFlag = 2 * 1000;
-        new android.os.Handler().postDelayed(
-                new Runnable() {
-                    public void run() {
-                        try {
 
-                            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-                            notificationManager.notify(nid, notification);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                },
-                delayFlag);
-
-
+        notificationManager.notify(nid, notification);
     }
 
     private void checkNodeInfo(int eventType) {
