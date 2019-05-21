@@ -416,45 +416,37 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             return;
         }
 
-        int delayFlag = 1 * 3000;
-        new android.os.Handler().postDelayed(
-                new Runnable() {
-                    public void run() {
-                        try {
-                            List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
-                            if (isInBillList(nodes)) {
-                                for (int i = 0; i < nodes.size() && i < 3; ++i) {
-                                    AccessibilityNodeInfo node = nodes.get(i);
-                                    Log.i(TAG, "checking item " + i);
-                                    List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
-                                    if (findNodesById(items, node, "com.alipay.mobile.bill.list:id/categoryTextView")) {
-                                        String text = items.get(0).getText().toString();
-                                        if ("小买卖".equals(text)) {
-                                            if (clickBill(node)) {
-                                                return;
-                                            }
-                                        } else if ("其他".equals(text)) {
-                                            if (clickBill(node)) {
-                                                return;
-                                            }
-                                        }
-                                    }
-                                }
-                                sendAllNotification();
-                                back(500);
-                                sleep(500);
-                                back(500);
-                                sleep(500);
-                                back(500);
-                                home(1000);
+        try {
+            List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
+            if (isInBillList(nodes)) {
+                for (int i = 0; i < nodes.size() && i < 3; ++i) {
+                    AccessibilityNodeInfo node = nodes.get(i);
+                    Log.i(TAG, "checking item " + i);
+                    List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
+                    if (findNodesById(items, node, "com.alipay.mobile.bill.list:id/categoryTextView")) {
+                        String text = items.get(0).getText().toString();
+                        if ("小买卖".equals(text)) {
+                            if (clickBill(node)) {
+                                return;
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                        } else if ("其他".equals(text)) {
+                            if (clickBill(node)) {
+                                return;
+                            }
                         }
                     }
-                },
-                delayFlag);
-
+                }
+                sendAllNotification();
+                back(500);
+                back(500);
+                back(500);
+                home(500);
+                sleep(500);
+                showReminder();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -739,6 +731,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 Log.i(TAG, "is in mine view");
                 nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
                 if (nodes != null && nodes.size() > 0) {
+                    firstTimeInBillList = 0;
                     nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
             } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/sigle_tab_bg")) {
@@ -782,6 +775,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                                     Log.i(TAG, "refreshBillList onCompleted");
                                     mMutex = false;
                                     super.onCompleted(gestureDescription);
+                                    sleep(3000);
                                     scanBillList();
                                 }
 
@@ -992,38 +986,17 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
     }
 
-    private void home(int delayFlag) {
-
-        new android.os.Handler().postDelayed(
-                new Runnable() {
-                    public void run() {
-                        try {
-                            performGlobalAction(GLOBAL_ACTION_HOME);
-                            sleep(500);
-                            showReminder();
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                },
-                delayFlag);
+    private void home(long ms) {
+        sleep(ms);
+        Log.i(TAG, "press home");
+        performGlobalAction(GLOBAL_ACTION_HOME);
     }
 
-    private void back(int delayFlag) {
-        Log.i(TAG, "to press back");
-        new android.os.Handler().postDelayed(
-                new Runnable() {
-                    public void run() {
-                        try {
-                            Log.i(TAG, "press back");
-                            performGlobalAction(GLOBAL_ACTION_BACK);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                },
-                delayFlag);
+    private void back(long ms) {
+        sleep(ms);
+
+        Log.i(TAG, "press back");
+        performGlobalAction(GLOBAL_ACTION_BACK);
     }
 
     private void saveNotification(String amount, String reference, String name, String mobile) {
@@ -1054,8 +1027,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
             notificationManager.notify(nid, notification);
 
-            sleep(1000);
+            sleep(500);
         }
+
+        messages.clear();
     }
 
     private void sleep(long ms) {
@@ -1224,7 +1199,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         });
     }
 
-    private void showReminder(){
+    private void showReminder() {
+        Log.i(TAG, "show reminder");
         Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.lbdd.reminder");
         //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
         intent.setAction("android.intent.action.MAIN");
