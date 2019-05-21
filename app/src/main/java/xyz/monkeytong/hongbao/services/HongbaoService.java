@@ -443,6 +443,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                                 sendAllNotification();
                                 back(500);
                                 sleep(500);
+                                back(500);
+                                sleep(500);
+                                back(500);
                                 home(1000);
                             }
                         } catch (Exception e) {
@@ -996,6 +999,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     public void run() {
                         try {
                             performGlobalAction(GLOBAL_ACTION_HOME);
+                            sleep(500);
+                            showReminder();
+
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -1216,6 +1222,16 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
             }
         });
+    }
+
+    private void showReminder(){
+        Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.lbdd.reminder");
+        //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
+        intent.setAction("android.intent.action.MAIN");
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        //intent.putExtra("data", "在此处添加数据信息");
+        startActivity(intent);
     }
 
     private void watchFlagsFromPreference() {
