@@ -114,10 +114,10 @@
     <orderEntry type="library" name="Gradle: com.tencent.bugly:crashreport_upgrade-1.4.0" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:animated-vector-drawable-25.4.0" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-compat-25.4.0" level="project" />
+    <orderEntry type="library" name="Gradle: com.tencent.bugly:nativecrashreport-3.7.1" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-vector-drawable-25.4.0" level="project" />
     <orderEntry type="library" name="Gradle: com.squareup.okio:okio:1.15.0@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.squareup.okhttp3:okhttp:3.12.0@jar" level="project" />
-    <orderEntry type="library" name="Gradle: com.tencent.bugly:nativecrashreport-3.6.0.1" level="project" />
     <orderEntry type="library" name="Gradle: com.android.support:support-core-utils-25.4.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.http.legacy-android-26" level="project" />
   </component>

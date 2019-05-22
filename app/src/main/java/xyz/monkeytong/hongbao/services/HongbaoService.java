@@ -587,7 +587,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 if (billListRefreshed == 0) {
                     Log.i(TAG, "to refresh bill list");
                     billListRefreshed = 1;
-                    this.refreshBillList(200);
+                    this.refreshBillList(1000);
                 } else {
                     scanBillList();
                 }
@@ -732,6 +732,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
                 if (nodes != null && nodes.size() > 0) {
                     firstTimeInBillList = 0;
+                    billListRefreshed = 0;
                     nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
             } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/sigle_tab_bg")) {
@@ -743,55 +744,46 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
     }
 
-    private synchronized void refreshBillList(int delayFlag) {
+    private synchronized void refreshBillList(long ms) {
 
-        new android.os.Handler().postDelayed(
-                new Runnable() {
-                    public void run() {
-                        try {
-                            Log.i(TAG, "refreshBillList");
-                            DisplayMetrics metrics = getResources().getDisplayMetrics();
-                            float dpi = metrics.densityDpi;
-                            Log.i(TAG, "dpi=" + dpi);
-                            Path path = new Path();
-                            if (320 == dpi) {//720p
-                                Log.i(TAG, "dpi 320");
-                                path.moveTo(355, 355);
-                                path.lineTo(355, 600);
-                            } else if (480 == dpi) {//1080p
-                                Log.i(TAG, "dpi 480");
-                                path.moveTo(533, 533);
-                                path.lineTo(533, 1000);
-                            } else { //1440
-                                Log.i(TAG, "dpi 1440");
-                                path.moveTo(720, 720);
-                                path.lineTo(720, 1200);
-                            }
-                            GestureDescription.Builder builder = new GestureDescription.Builder();
-                            GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 1000, 200L)).build();
-                            dispatchGesture(gestureDescription, new GestureResultCallback() {
-                                @Override
-                                public void onCompleted(GestureDescription gestureDescription) {
-                                    Log.i(TAG, "refreshBillList onCompleted");
-                                    mMutex = false;
-                                    super.onCompleted(gestureDescription);
-                                    sleep(3000);
-                                    scanBillList();
-                                }
+        Log.i(TAG, "refreshBillList");
+        sleep(ms);
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        float dpi = metrics.densityDpi;
+        Log.i(TAG, "dpi=" + dpi);
+        Path path = new Path();
+        if (320 == dpi) {//720p
+            Log.i(TAG, "dpi 320");
+            path.moveTo(355, 355);
+            path.lineTo(355, 600);
+        } else if (480 == dpi) {//1080p
+            Log.i(TAG, "dpi 480");
+            path.moveTo(533, 533);
+            path.lineTo(533, 1000);
+        } else { //1440
+            Log.i(TAG, "dpi 1440");
+            path.moveTo(720, 720);
+            path.lineTo(720, 1200);
+        }
+        GestureDescription.Builder builder = new GestureDescription.Builder();
+        GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 1000, 200L)).build();
+        dispatchGesture(gestureDescription, new GestureResultCallback() {
+            @Override
+            public void onCompleted(GestureDescription gestureDescription) {
+                Log.i(TAG, "refreshBillList onCompleted");
+                mMutex = false;
+                super.onCompleted(gestureDescription);
+                sleep(3000);
+                scanBillList();
+            }
 
-                                @Override
-                                public void onCancelled(GestureDescription gestureDescription) {
-                                    Log.i(TAG, "refreshBillList onCancelled");
-                                    mMutex = false;
-                                    super.onCancelled(gestureDescription);
-                                }
-                            }, null);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                },
-                delayFlag);
+            @Override
+            public void onCancelled(GestureDescription gestureDescription) {
+                Log.i(TAG, "refreshBillList onCancelled");
+                mMutex = false;
+                super.onCancelled(gestureDescription);
+            }
+        }, null);
 
     }
 
@@ -994,7 +986,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private void back(long ms) {
         sleep(ms);
-
         Log.i(TAG, "press back");
         performGlobalAction(GLOBAL_ACTION_BACK);
     }
@@ -1224,7 +1215,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (key.equals("pref_watch_on_lock")) {
             Boolean changedValue = sharedPreferences.getBoolean(key, false);
             this.powerUtil.handleWakeLock(changedValue);
-            this.notificationText = "begin test";
+            if (changedValue == true) {
+                this.notificationText = "begin test";
+            } else {
+            }
+
+            backedFromChat = 0;
+            backedFromBusiness = 0;
         }
     }
 
