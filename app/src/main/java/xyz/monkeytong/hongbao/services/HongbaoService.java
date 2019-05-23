@@ -75,6 +75,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private int backedFromBusiness = 0;
     private int backedFromChat = 0;
     private JSONObject payInfo = null;
+    private java.util.concurrent.ConcurrentLinkedQueue notifications = new java.util.concurrent.ConcurrentLinkedQueue<String>();
 
     /**
      * AccessibilityEvent
@@ -438,10 +439,18 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     }
                 }
                 sendAllNotification();
+                synchronized (this.notifications) {
+                    if (this.notifications.size() > 0) {
+                        this.notificationText = (String) this.notifications.poll();
+                        this.notifications.clear();
+                        back(200);
+                        return;
+                    }
+                }
                 back(500);
                 back(500);
-                back(500);
-                home(500);
+                //back(500);
+                //home(500);
                 sleep(500);
                 showReminder();
             }
@@ -881,6 +890,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         String tip = event.getText().get(0).toString();
         if (!tip.contains(Alipay_NOTIFICATION_TIP) && !tip.contains("成功收款")) return true;
         Log.i(TAG, "valid notification received");
+        synchronized (this.notifications) {
+            if (this.notificationText != null) {
+                this.notifications.add(tip);
+                return true;
+            }
+        }
         this.notificationText = tip;
         this.billListRefreshed = 0;
         this.firstTimeInBillList = 0;
@@ -1002,7 +1017,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
 
     private void sendAllNotification() {
-        this.notificationText = null;
         for (int i = 0; i < messages.size(); ++i) {
             String msg = messages.get(i);
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
@@ -1011,7 +1025,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     .setContentText(msg)
                     .setContentIntent(this.contentIntent);
 
-            this.notificationText = null;
             final Notification notification = builder.build();
             //notification.flags = Notification.FLAG_ONGOING_EVENT;
 
@@ -1026,6 +1039,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
 
         messages.clear();
+        this.notificationText = null;
     }
 
     private void sleep(long ms) {
