@@ -69,6 +69,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private long firstTimeInBillList = 0;
     private int billListRefreshed = 0;
     private int billInfoGot = 0;
+    private int firstTimeInMineView = 0;
     private PendingIntent contentIntent;
     private String notificationText = null;
     private int backedFromBusiness = 0;
@@ -730,7 +731,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             if (isInMineView(nodes)) {
                 Log.i(TAG, "is in mine view");
                 nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
-                if (nodes != null && nodes.size() > 0) {
+                if (nodes != null && nodes.size() > 0 && firstTimeInMineView == 0) {
+                    firstTimeInMineView = 1;
                     firstTimeInBillList = 0;
                     billListRefreshed = 0;
                     nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
@@ -738,6 +740,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/sigle_tab_bg")) {
                 Log.i(TAG, "is in tab page, to click my page");
                 if (nodes.size() > 0) {
+                    firstTimeInMineView = 0;
                     nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
             }
@@ -881,6 +884,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.notificationText = tip;
         this.billListRefreshed = 0;
         this.firstTimeInBillList = 0;
+        this.firstTimeInMineView = 0;
         this.messages.clear();
         this.backedFromBusiness = 0;
         this.backedFromChat = 0;
@@ -1222,6 +1226,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
             backedFromChat = 0;
             backedFromBusiness = 0;
+            firstTimeInMineView = 0;
         }
     }
 
