@@ -74,6 +74,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private String notificationText = null;
     private int backedFromBusiness = 0;
     private int backedFromChat = 0;
+    private int nameButtonClicked = 0;
+    private String trueName = null;
     private JSONObject payInfo = null;
     private java.util.concurrent.ConcurrentLinkedQueue notifications = new java.util.concurrent.ConcurrentLinkedQueue<String>();
 
@@ -256,6 +258,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             this.bills.add(bill);
             this.billInfoGot = 0;
             Log.i(TAG, "clicking bill");
+            nameButtonClicked = 0;
+            trueName = null;
             node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
             return true;
         }
@@ -280,6 +284,19 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.openplatform:id/app_text")) {
             if (nodes.size() > 2 && nodes.get(1).getText().equals("转账")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isInSenderAccount(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node;
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.transferapp:id/tf_receiveNameTextView")) {
+            if (nodes.size() > 0) {
                 return true;
             }
         }
@@ -468,6 +485,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             Log.i(TAG, "getting bill info: is in bill");
             AccessibilityNodeInfo root = nodes.get(0);
             AccessibilityNodeInfo node = getChild(root, "00000");
+            AccessibilityNodeInfo button = node;
             if (node != null) {
                 String clsName = node.getClassName().toString();
                 String amount = "", name = "", mobile = "", reference = "";
@@ -510,6 +528,19 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         node = getChild(root, "00006");
                         if (node != null && node.getContentDescription() != null) {
                             reference = node.getContentDescription().toString();
+                        }
+                    }
+
+                    if ("".equals(amount + reference + name + mobile)) {
+                        Log.d(TAG, "bill info not ready");
+                        return;
+                    } else {
+                        synchronized (HongbaoService.class) {
+                            if (nameButtonClicked == 0) {
+                                trueName = null;
+                                button.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                nameButtonClicked = 1;
+                            }
                         }
                     }
                 } else if (clsName.equals("android.view.View")) {
@@ -559,6 +590,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 this.billInfoGot = 1;
                 synchronized (this) {
                     if (notificationText != null) {
+                        if (trueName != null) {
+                            name = trueName;
+                        }
                         saveNotification(amount, reference, name, mobile);
                         firstTimeInBillList = 0;
                         back(500);
@@ -624,6 +658,24 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 this.backedFromBusiness = 1;
                 back(1500);
             }
+        } else if (isInSenderAccount(nodes)) {
+            Log.d(TAG, "is in sender account");
+            if (this.payInfo != null) {
+                back(500);
+                return;
+            }
+
+            CharSequence text = nodes.get(0).getText();
+            if (text == null) {
+                text = nodes.get(0).getContentDescription();
+            }
+
+            String str = text.toString();
+            int start = str.indexOf('*');
+            int end = str.indexOf("）");
+            trueName = str.substring(start, end);
+            Log.i(TAG, "back from sender account");
+            back(500);
         } else if (isInBill(nodes)) {
             Log.i(TAG, "is in bill");
             if (this.payInfo != null) {
