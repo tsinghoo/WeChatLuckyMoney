@@ -633,12 +633,14 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             }
             if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 Log.i(TAG, "is in bill list");
-                if (billListRefreshed == 0) {
-                    Log.i(TAG, "to refresh bill list");
-                    billListRefreshed = 1;
-                    this.refreshBillList(1000);
-                } else {
-                    scanBillList();
+                synchronized (HongbaoService.class) {
+                    if (billListRefreshed == 0) {
+                        Log.i(TAG, "to refresh bill list");
+                        billListRefreshed = 1;
+                        this.refreshBillList(1500);
+                    } else {
+                        scanBillList();
+                    }
                 }
             }
         } else if (isInChat(nodes)) {
@@ -682,9 +684,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
 
             String str = text.toString();
-            int start = str.indexOf('*');
+            int start = str.indexOf("（");
             int end = str.indexOf("）");
-            trueName = str.substring(start, end);
+            trueName = str.substring(start+1, end);
             Log.i(TAG, "back from sender account");
             billInfoGot = 0;
             back(500);
