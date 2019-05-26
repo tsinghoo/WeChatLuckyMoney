@@ -540,6 +540,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                                 trueName = null;
                                 button.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                                 nameButtonClicked = 1;
+                                return;
+                            }
+
+                            if (nameButtonClicked == 1 && trueName == null) {
+                                return;
                             }
                         }
                     }
@@ -665,16 +670,24 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 return;
             }
 
+            if (trueName != null) {
+                Log.d(TAG, "already got trueName");
+                return;
+            }
+
             CharSequence text = nodes.get(0).getText();
             if (text == null) {
                 text = nodes.get(0).getContentDescription();
             }
+
 
             String str = text.toString();
             int start = str.indexOf('*');
             int end = str.indexOf("）");
             trueName = str.substring(start, end);
             Log.i(TAG, "back from sender account");
+            billInfoGot = 0;
+            back(500);
             back(500);
         } else if (isInBill(nodes)) {
             Log.i(TAG, "is in bill");
@@ -1217,6 +1230,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         super.onServiceConnected();
         this.watchFlagsFromPreference();
         registerClipEvents();
+        this.notificationText = "begin test";
+
+        sleep(1000);
+        startAlipay();
     }
 
 
@@ -1241,13 +1258,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                                 JSONObject json = new JSONObject(text.toString());
                                 payInfo = json;
                                 if (!payInfo.optString("type").equals("wechat")) {
-                                    Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.eg.android.AlipayGphone");
-                                    //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
-                                    intent.setAction("android.intent.action.MAIN");
-                                    intent.addCategory(Intent.CATEGORY_LAUNCHER);
-                                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-                                    //intent.putExtra("data", "在此处添加数据信息");
-                                    startActivity(intent);
+                                    startAlipay();
                                 }
 
                             }
@@ -1258,6 +1269,16 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
             }
         });
+    }
+
+    private void startAlipay(){
+        Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.eg.android.AlipayGphone");
+        //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
+        intent.setAction("android.intent.action.MAIN");
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        //intent.putExtra("data", "在此处添加数据信息");
+        startActivity(intent);
     }
 
     private void showReminder() {
