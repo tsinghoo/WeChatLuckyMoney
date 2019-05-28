@@ -665,12 +665,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 this.backedFromBusiness = 1;
                 back(1500);
             }
-        } else if (isInSenderAccount(nodes)) {
+        } else if (this.payInfo == null && isInSenderAccount(nodes)) {
             Log.d(TAG, "is in sender account");
-            if (this.payInfo != null) {
-                back(500);
-                return;
-            }
 
             if (trueName != null) {
                 Log.d(TAG, "already got trueName");
@@ -686,7 +682,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             String str = text.toString();
             int start = str.indexOf("（");
             int end = str.indexOf("）");
-            trueName = str.substring(start+1, end);
+            trueName = str.substring(start + 1, end);
             Log.i(TAG, "back from sender account");
             billInfoGot = 0;
             back(500);
@@ -762,25 +758,30 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         } else if (isInInputToCard(nodes)) {
             Log.i(TAG, "is in card info page");
             if (this.payInfo != null) {
+                sleep(1000);
                 if (nodes.get(0).getText().toString().indexOf("收款人姓名") >= 0) {
+                    Log.i(TAG, "start to paste");
                     ClipboardManager clipboard = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
                     int i = 0;
 
                     ClipData clip = ClipData.newPlainText("text", payInfo.optString("name", ""));
                     clipboard.setPrimaryClip(clip);
                     nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                    sleep(500);
                     nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
-                    sleep(1000);
+                    sleep(500);
 
                     clip = ClipData.newPlainText("text", payInfo.optString("card", ""));
                     clipboard.setPrimaryClip(clip);
                     nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                    sleep(500);
                     nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
-                    sleep(1000);
+                    sleep(500);
 
                     clip = ClipData.newPlainText("text", payInfo.optString("amount", ""));
                     clipboard.setPrimaryClip(clip);
                     nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                    sleep(500);
                     nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
                     payInfo = null;
                 }
@@ -1267,13 +1268,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         }
                     }
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    //ex.printStackTrace();
                 }
             }
         });
     }
 
-    private void startAlipay(){
+    private void startAlipay() {
         Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.eg.android.AlipayGphone");
         //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
         intent.setAction("android.intent.action.MAIN");
