@@ -460,6 +460,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     if (this.notifications.size() > 0) {
                         this.notificationText = (String) this.notifications.poll();
                         this.notifications.clear();
+                        firstTimeInMineView = 0;
                         back(200);
                         return;
                     }
@@ -663,7 +664,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             if (this.backedFromBusiness == 0) {
                 Log.i(TAG, "back from business");
                 this.backedFromBusiness = 1;
-                back(1500);
+                back(3000);
             }
         } else if (this.payInfo == null && isInSenderAccount(nodes)) {
             Log.d(TAG, "is in sender account");
