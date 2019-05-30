@@ -1237,6 +1237,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.notificationText = "begin test";
 
         sleep(1000);
+        showReminder();
+        sleep(1000);
         startAlipay();
     }
 
@@ -1310,7 +1312,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (key.equals("pref_watch_on_lock")) {
             Boolean changedValue = sharedPreferences.getBoolean(key, false);
             this.powerUtil.handleWakeLock(changedValue);
-            if (changedValue == true) {
+            if (changedValue == false) {
                 this.notificationText = "begin test";
             } else {
             }
@@ -1318,6 +1320,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             backedFromChat = 0;
             backedFromBusiness = 0;
             firstTimeInMineView = 0;
+            sleep(1000);
+            showReminder();
+            sleep(1000);
+            startAlipay();
         }
     }
 
