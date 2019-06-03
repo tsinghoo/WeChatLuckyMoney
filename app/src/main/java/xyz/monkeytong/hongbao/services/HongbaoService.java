@@ -438,7 +438,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         try {
             List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
             if (isInBillList(nodes)) {
-                for (int i = 0; i < nodes.size() && i < 3; ++i) {
+                for (int i = 0; i < nodes.size(); ++i) {
                     AccessibilityNodeInfo node = nodes.get(i);
                     Log.i(TAG, "checking item " + i);
                     List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
@@ -467,8 +467,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
                 back(500);
                 back(500);
-                //back(500);
-                //home(500);
                 sleep(500);
                 showReminder();
             }
@@ -1237,8 +1235,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.notificationText = "begin test";
 
         sleep(1000);
-        showReminder();
-        sleep(1000);
         startAlipay();
     }
 
@@ -1314,16 +1310,14 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             this.powerUtil.handleWakeLock(changedValue);
             if (changedValue == false) {
                 this.notificationText = "begin test";
+                backedFromChat = 0;
+                backedFromBusiness = 0;
+                firstTimeInMineView = 0;
+                firstTimeInBillList = 0;
+                sleep(1000);
+                startAlipay();
             } else {
             }
-
-            backedFromChat = 0;
-            backedFromBusiness = 0;
-            firstTimeInMineView = 0;
-            sleep(1000);
-            showReminder();
-            sleep(1000);
-            startAlipay();
         }
     }
 
