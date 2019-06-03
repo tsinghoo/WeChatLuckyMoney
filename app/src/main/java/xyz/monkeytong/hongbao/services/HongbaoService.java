@@ -465,9 +465,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         return;
                     }
                 }
-                back(500);
-                back(500);
-                sleep(500);
+                //back(500);
+                //back(500);
+                //sleep(500);
                 showReminder();
             }
         } catch (Exception e) {
