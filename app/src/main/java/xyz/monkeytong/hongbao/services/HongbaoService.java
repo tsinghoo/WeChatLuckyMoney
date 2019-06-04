@@ -34,6 +34,8 @@ import org.json.JSONObject;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class HongbaoService extends AccessibilityService implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = "HongbaoService";
@@ -76,6 +78,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private int backedFromBusiness = 0;
     private int backedFromChat = 0;
     private int nameButtonClicked = 0;
+    private Timer timer;
     private String trueName = null;
     private JSONObject payInfo = null;
     private java.util.concurrent.ConcurrentLinkedQueue notifications = new java.util.concurrent.ConcurrentLinkedQueue<String>();
@@ -1308,28 +1311,44 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.powerUtil.handleWakeLock(watchOnLockFlag);
     }
 
+    private void checkAlipay(int manualStart){
+        this.notificationText = "begin test";
+        backedFromChat = 0;
+        backedFromBusiness = 0;
+        firstTimeInMineView = 0;
+        firstTimeInBillList = 0;
+        this.manualStart = manualStart;
+        sleep(500);
+        startAlipay();
+    }
+
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (key.equals("pref_watch_on_lock")) {
             Boolean changedValue = sharedPreferences.getBoolean(key, false);
             this.powerUtil.handleWakeLock(changedValue);
             if (changedValue == false) {
-                this.notificationText = "begin test";
-                backedFromChat = 0;
-                backedFromBusiness = 0;
-                firstTimeInMineView = 0;
-                firstTimeInBillList = 0;
-                manualStart = 1;
-                sleep(500);
-                startAlipay();
+                this.checkAlipay(1);
             } else {
             }
-        }else  if (key.equals("pref_open_delay")) {
+        } else if (key.equals("pref_open_delay")) {
             int interval = sharedPreferences.getInt(key, 0);
 
-            if (interval > 0 ) {
-                
+            if (interval > 0) {
+                if (this.timer == null) {
+                    this.timer = new Timer();
+                    timer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            checkAlipay(0);
+                        }
+                    }, 5000, interval * 60000);
+                }
             } else {
+                if (this.timer != null) {
+                    this.timer.cancel();
+                    this.timer = null;
+                }
             }
         }
     }
