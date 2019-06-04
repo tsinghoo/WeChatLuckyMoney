@@ -82,9 +82,10 @@ public class SeekBarPreference extends DialogPreference {
 
     private void setHintText(int delay) {
         if (delay == 0) {
-            this.textView.setText(getContext().getString(R.string.delay_instantly) + hintText);
+            this.textView.setText("关闭");
         } else {
-            this.textView.setText(getContext().getString(R.string.delay_delay) + delay + getContext().getString(R.string.delay_sec) + getContext().getString(R.string.delay_then) + hintText);
+
+            this.textView.setText(delay + "分钟刷新扫描一次");
         }
     }
 }

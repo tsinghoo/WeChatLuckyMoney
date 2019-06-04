@@ -1324,6 +1324,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 startAlipay();
             } else {
             }
+        }else  if (key.equals("pref_open_delay")) {
+            int interval = sharedPreferences.getInt(key, 0);
+
+            if (interval > 0 ) {
+                
+            } else {
+            }
         }
     }
 
