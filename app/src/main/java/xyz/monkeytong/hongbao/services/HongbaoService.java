@@ -68,6 +68,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private int nid = 1;
     private long firstTimeInBillList = 0;
     private int billListRefreshed = 0;
+    private int manualStart = 0;
     private int billInfoGot = 0;
     private int firstTimeInMineView = 0;
     private PendingIntent contentIntent;
@@ -465,9 +466,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         return;
                     }
                 }
-                //back(500);
-                //back(500);
-                //sleep(500);
+
+                if (manualStart == 0) {
+                    back(500);
+                    back(500);
+                }
+                sleep(500);
                 showReminder();
             }
         } catch (Exception e) {
@@ -967,6 +971,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.billListRefreshed = 0;
         this.firstTimeInBillList = 0;
         this.firstTimeInMineView = 0;
+        this.manualStart = 0;
         this.messages.clear();
         this.backedFromBusiness = 0;
         this.backedFromChat = 0;
@@ -1314,7 +1319,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 backedFromBusiness = 0;
                 firstTimeInMineView = 0;
                 firstTimeInBillList = 0;
-                sleep(1000);
+                manualStart = 1;
+                sleep(500);
                 startAlipay();
             } else {
             }
