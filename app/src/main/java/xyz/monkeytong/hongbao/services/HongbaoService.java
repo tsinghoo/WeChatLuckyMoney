@@ -476,6 +476,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
                 sleep(500);
                 showReminder();
+                this.powerUtil.handleWakeLock(false);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1318,6 +1319,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         firstTimeInMineView = 0;
         firstTimeInBillList = 0;
         this.manualStart = manualStart;
+        this.powerUtil.handleWakeLock(true);
         sleep(500);
         startAlipay();
     }
