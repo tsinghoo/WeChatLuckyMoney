@@ -963,7 +963,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (!event.getPackageName().toString().contains(AlipayPackageName)) return true;
         // Not a hongbao
         String tip = event.getText().get(0).toString();
-        if (!tip.contains(Alipay_NOTIFICATION_TIP) && !tip.contains("成功收款")) return true;
+        if (!tip.contains(Alipay_NOTIFICATION_TIP) && !tip.contains("成功收款") && !tip.contains("向你付款")) return true;
         Log.i(TAG, "valid notification received");
         synchronized (this.notifications) {
             if (this.notificationText != null) {
@@ -989,7 +989,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 this.powerUtil.handleWakeLock(true);
                 //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
                 sleep(500);
-                notification.contentIntent.send();
+                //notification.contentIntent.send();
+                startAlipay();
             } catch (Exception e) {
                 e.printStackTrace();
             }
