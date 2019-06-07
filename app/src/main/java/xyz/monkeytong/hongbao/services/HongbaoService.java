@@ -474,7 +474,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     back(500);
                     back(500);
                 }
-                sleep(500);
+                sleep(1500);
                 showReminder();
                 this.powerUtil.handleWakeLock(false);
             }
@@ -963,7 +963,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (!event.getPackageName().toString().contains(AlipayPackageName)) return true;
         // Not a hongbao
         String tip = event.getText().get(0).toString();
-        if (!tip.contains(Alipay_NOTIFICATION_TIP) && !tip.contains("成功收款") && !tip.contains("向你付款")) return true;
+        if (!tip.contains(Alipay_NOTIFICATION_TIP)) return true;
+        if (!tip.contains("成功收款")) return true;
+        if (!tip.contains("向你付款")) return true;
         Log.i(TAG, "valid notification received");
         synchronized (this.notifications) {
             if (this.notificationText != null) {
@@ -1313,7 +1315,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.powerUtil.handleWakeLock(watchOnLockFlag);
     }
 
-    private void checkAlipay(int manualStart){
+    private void checkAlipay(int manualStart) {
         this.notificationText = "begin test";
         backedFromChat = 0;
         backedFromBusiness = 0;
@@ -1340,13 +1342,17 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             if (interval > 0) {
                 if (this.timer == null) {
                     this.timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            checkAlipay(0);
-                        }
-                    }, 5000, interval * 60000);
                 }
+
+                this.timer.cancel();
+
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        checkAlipay(0);
+                    }
+                }, 5000, interval * 60000);
+
             } else {
                 if (this.timer != null) {
                     this.timer.cancel();
@@ -1354,6 +1360,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
             }
         }
+
     }
 
     @Override
