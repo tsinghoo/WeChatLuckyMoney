@@ -237,6 +237,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private boolean clickBill(AccessibilityNodeInfo node) {
         List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
+        Date now = new Date();
         String bill = "";
         if (this.findNodesById(items, node, "com.alipay.mobile.bill.list:id/billName")) {
             bill = bill + items.get(0).getText().toString();
@@ -247,7 +248,16 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
         items.clear();
         if (this.findNodesById(items, node, "com.alipay.mobile.bill.list:id/timeInfo1")) {
-            bill = bill + items.get(0).getText().toString();
+            String day = items.get(0).getText().toString();
+
+            if ("今天".equals(day)) {
+                day = now.getYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
+            } else if ("昨天".equals(day)) {
+                Date yesterday = new Date(now.getTime() - 24 * 3600 * 1000);
+                day = yesterday.getYear() + "-" + (yesterday.getMonth() + 1) + "-" + yesterday.getDate();
+            }
+
+            bill = bill + day;
         }
         items.clear();
         if (this.findNodesById(items, node, "com.alipay.mobile.bill.list:id/timeInfo2")) {
@@ -852,25 +862,32 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             path.moveTo(720, 720);
             path.lineTo(720, 1200);
         }
-        GestureDescription.Builder builder = new GestureDescription.Builder();
-        GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 1000, 200L)).build();
-        dispatchGesture(gestureDescription, new GestureResultCallback() {
-            @Override
-            public void onCompleted(GestureDescription gestureDescription) {
-                Log.i(TAG, "refreshBillList onCompleted");
-                mMutex = false;
-                super.onCompleted(gestureDescription);
-                sleep(3000);
-                scanBillList();
-            }
 
-            @Override
-            public void onCancelled(GestureDescription gestureDescription) {
-                Log.i(TAG, "refreshBillList onCancelled");
-                mMutex = false;
-                super.onCancelled(gestureDescription);
-            }
-        }, null);
+        try {
+            GestureDescription.Builder builder = new GestureDescription.Builder();
+            GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 1000, 200L)).build();
+            dispatchGesture(gestureDescription, new GestureResultCallback() {
+                @Override
+                public void onCompleted(GestureDescription gestureDescription) {
+                    Log.i(TAG, "refreshBillList onCompleted");
+                    mMutex = false;
+                    super.onCompleted(gestureDescription);
+                    sleep(3000);
+                    scanBillList();
+                }
+
+                @Override
+                public void onCancelled(GestureDescription gestureDescription) {
+                    Log.i(TAG, "refreshBillList onCancelled");
+                    mMutex = false;
+                    super.onCancelled(gestureDescription);
+                }
+            }, null);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            sleep(2000);
+            scanBillList();
+        }
 
     }
 
@@ -963,9 +980,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (!event.getPackageName().toString().contains(AlipayPackageName)) return true;
         // Not a hongbao
         String tip = event.getText().get(0).toString();
-        if (!tip.contains(Alipay_NOTIFICATION_TIP)) return true;
-        if (!tip.contains("成功收款")) return true;
-        if (!tip.contains("向你付款")) return true;
+        if (!tip.contains(Alipay_NOTIFICATION_TIP)
+                && !tip.contains("成功收款")
+                && !tip.contains("向你付款")
+                ) return true;
+
         Log.i(TAG, "valid notification received");
         synchronized (this.notifications) {
             if (this.notificationText != null) {
