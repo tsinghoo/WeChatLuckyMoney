@@ -22,6 +22,7 @@ public class GeneralSettingsFragment extends PreferenceFragment {
 
     private void setPrefListeners() {
         // Check for updates
+        /*
         Preference updatePref = findPreference("pref_etc_check_update");
         updatePref.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
             public boolean onPreferenceClick(Preference preference) {
@@ -60,5 +61,6 @@ public class GeneralSettingsFragment extends PreferenceFragment {
                 return true;
             }
         });
+        */
     }
 }

@@ -97,13 +97,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (!mMutex) {
             if (sharedPreferences.getBoolean("pref_watch_notification", false) && watchNotifications(event))
                 return;
-            if (sharedPreferences.getBoolean("pref_watch_list", false) && watchList(event)) return;
+            //if (sharedPreferences.getBoolean("pref_watch_list", false) && watchList(event)) return;
             mListMutex = false;
         }
 
         if (!mChatMutex) {
             mChatMutex = true;
-            if (sharedPreferences.getBoolean("pref_watch_chat", false)) watchChat(event);
+            if (sharedPreferences.getBoolean("pref_watch_chat", true)) watchChat(event);
             mChatMutex = false;
         }
     }
