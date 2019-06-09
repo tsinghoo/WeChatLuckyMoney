@@ -1360,10 +1360,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
             if (interval > 0) {
                 if (this.timer == null) {
-                    this.timer = new Timer();
+                }else{
+
+                    this.timer.cancel();
                 }
 
-                this.timer.cancel();
+                this.timer = new Timer();
 
                 timer.schedule(new TimerTask() {
                     @Override
