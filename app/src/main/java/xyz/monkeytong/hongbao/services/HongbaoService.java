@@ -305,6 +305,20 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         return false;
     }
 
+
+    private boolean isInTransferFinishPage(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node;
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.app:id/nav_right_textview")) {
+            if (nodes.size() > 0 && nodes.get(0).getText().equals("完成")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private boolean isInSenderAccount(List<AccessibilityNodeInfo> nodes) {
         AccessibilityNodeInfo lastNode = null, node;
         nodes.clear();
@@ -481,11 +495,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
 
                 if (manualStart == 0) {
-                    back(500);
-                    back(500);
+                    back(800);
+                    back(800);
                 }
-                sleep(1500);
-                showReminder();
                 this.powerUtil.handleWakeLock(false);
             }
         } catch (Exception e) {
@@ -805,6 +817,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             } else {
                 back(500);
             }
+        } else if (this.isInTransferFinishPage(nodes)) {
+            Log.i(TAG, "is in transfer finish page");
+            back(500);
         } else {
             if (this.payInfo != null) {
                 if (isInFirstPage(nodes)) {
@@ -1265,10 +1280,40 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         registerClipEvents();
         this.notificationText = "begin test";
 
-        sleep(1000);
+        sleep(500);
+        showReminder();
+        sleep(2000);
         startAlipay();
+
+        autoWatch();
     }
 
+
+    private void autoWatch() {
+        int interval = sharedPreferences.getInt("pref_open_delay", 0);
+
+        if (interval > 0) {
+            if (this.timer == null) {
+            } else {
+                this.timer.cancel();
+            }
+
+            this.timer = new Timer();
+
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    checkAlipay(0);
+                }
+            }, 5000, interval * 60000);
+
+        } else {
+            if (this.timer != null) {
+                this.timer.cancel();
+                this.timer = null;
+            }
+        }
+    }
 
     private void registerClipEvents() {
 
@@ -1356,32 +1401,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             } else {
             }
         } else if (key.equals("pref_open_delay")) {
-            int interval = sharedPreferences.getInt(key, 0);
-
-            if (interval > 0) {
-                if (this.timer == null) {
-                }else{
-
-                    this.timer.cancel();
-                }
-
-                this.timer = new Timer();
-
-                timer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        checkAlipay(0);
-                    }
-                }, 5000, interval * 60000);
-
-            } else {
-                if (this.timer != null) {
-                    this.timer.cancel();
-                    this.timer = null;
-                }
-            }
+            autoWatch();
         }
-
     }
 
     @Override

@@ -23,7 +23,7 @@ public class PowerUtil {
 
     private void acquire() {
         Log.i(TAG, "disable keyguard");
-        wakeLock.acquire(200000);
+        wakeLock.acquire(15000);
         keyguardLock.disableKeyguard();
     }
 
