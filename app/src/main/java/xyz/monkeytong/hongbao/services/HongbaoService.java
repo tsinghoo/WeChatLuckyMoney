@@ -72,12 +72,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private int billListRefreshed = 0;
     private int manualStart = 0;
     private int billInfoGot = 0;
+    private int shouldInBillInfo = 0;
     private int firstTimeInMineView = 0;
     private PendingIntent contentIntent;
     private String notificationText = null;
     private int backedFromBusiness = 0;
     private int backedFromChat = 0;
     private int nameButtonClicked = 0;
+    private int shouldInSenderAccount = 0;
+
     private Timer timer;
     private String trueName = null;
     private JSONObject payInfo = null;
@@ -272,6 +275,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             this.bills.add(bill);
             this.billInfoGot = 0;
             Log.i(TAG, "clicking bill");
+            this.shouldInBillInfo = 1;
             nameButtonClicked = 0;
             trueName = null;
             node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
@@ -489,6 +493,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         this.notificationText = (String) this.notifications.poll();
                         this.notifications.clear();
                         firstTimeInMineView = 0;
+                        shouldInBillInfo = 0;
+                        shouldInSenderAccount = 0;
+                        trueName = null;
                         back(200);
                         return;
                     }
@@ -567,6 +574,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         synchronized (HongbaoService.class) {
                             if (nameButtonClicked == 0) {
                                 trueName = null;
+                                shouldInSenderAccount = 1;
                                 button.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                                 nameButtonClicked = 1;
                                 return;
@@ -697,6 +705,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         } else if (this.payInfo == null && isInSenderAccount(nodes)) {
             Log.d(TAG, "is in sender account");
 
+
+            if (this.shouldInSenderAccount == 0) {
+                back(500);
+
+                return;
+            }
             if (trueName != null) {
                 Log.d(TAG, "already got trueName");
                 return;
@@ -722,10 +736,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 back(500);
                 return;
             }
-            if (this.billInfoGot == 0) {
-                Log.i(TAG, "to get bill info");
-                this.getBillInfo();
-                return;
+
+            if (this.shouldInBillInfo == 1) {
+                if (this.billInfoGot == 0) {
+                    Log.i(TAG, "to get bill info");
+                    this.getBillInfo();
+                    return;
+                }
+            } else {
+                back(500);
             }
 
         } else if (isInTransferPage(nodes)) {
@@ -878,28 +897,33 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             path.lineTo(720, 1200);
         }
 
-        try {
-            GestureDescription.Builder builder = new GestureDescription.Builder();
-            GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 1000, 200L)).build();
-            dispatchGesture(gestureDescription, new GestureResultCallback() {
-                @Override
-                public void onCompleted(GestureDescription gestureDescription) {
-                    Log.i(TAG, "refreshBillList onCompleted");
-                    mMutex = false;
-                    super.onCompleted(gestureDescription);
-                    sleep(3000);
-                    scanBillList();
-                }
+        if (android.os.Build.VERSION.SDK_INT > 23) {
+            try {
+                GestureDescription.Builder builder = new GestureDescription.Builder();
+                GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 1000, 200L)).build();
+                dispatchGesture(gestureDescription, new GestureResultCallback() {
+                    @Override
+                    public void onCompleted(GestureDescription gestureDescription) {
+                        Log.i(TAG, "refreshBillList onCompleted");
+                        mMutex = false;
+                        super.onCompleted(gestureDescription);
+                        sleep(3000);
+                        scanBillList();
+                    }
 
-                @Override
-                public void onCancelled(GestureDescription gestureDescription) {
-                    Log.i(TAG, "refreshBillList onCancelled");
-                    mMutex = false;
-                    super.onCancelled(gestureDescription);
-                }
-            }, null);
-        } catch (Exception ex) {
-            ex.printStackTrace();
+                    @Override
+                    public void onCancelled(GestureDescription gestureDescription) {
+                        Log.i(TAG, "refreshBillList onCancelled");
+                        mMutex = false;
+                        super.onCancelled(gestureDescription);
+                    }
+                }, null);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                sleep(2000);
+                scanBillList();
+            }
+        } else {
             sleep(2000);
             scanBillList();
         }
@@ -1012,6 +1036,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.firstTimeInBillList = 0;
         this.firstTimeInMineView = 0;
         this.manualStart = 0;
+        this.shouldInBillInfo = 0;
         this.messages.clear();
         this.backedFromBusiness = 0;
         this.backedFromChat = 0;
@@ -1279,7 +1304,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.watchFlagsFromPreference();
         registerClipEvents();
         this.notificationText = "begin test";
-
+        this.shouldInBillInfo = 0;
         sleep(500);
         showReminder();
         sleep(2000);
@@ -1385,6 +1410,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         backedFromBusiness = 0;
         firstTimeInMineView = 0;
         firstTimeInBillList = 0;
+        shouldInBillInfo = 0;
+        shouldInSenderAccount = 0;
+        trueName = null;
         this.manualStart = manualStart;
         this.powerUtil.handleWakeLock(true);
         sleep(500);
