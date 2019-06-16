@@ -120,7 +120,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         String cName = event.getClassName().toString();
 
-        Log.i("className", "className:" + cName);
+        info("className", "className:" + cName);
         if (!cName.equals("com.alipay.mobile.chatapp.ui.PersonalChatMsgActivity_"))
             return;
         mReceiveNode = null;
@@ -268,13 +268,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
         items.clear();
 
+
+        info(TAG, "bill:" + bill);
         if (billExist(bill)) {
-            Log.i(TAG, "bill already clicked");
+            info(TAG, "already clicked");
             return false;
         } else {
             this.bills.add(bill);
             this.billInfoGot = 0;
-            Log.i(TAG, "clicking bill");
+            info(TAG, "clicking");
             this.shouldInBillInfo = 1;
             nameButtonClicked = 0;
             trueName = null;
@@ -461,7 +463,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private synchronized void scanBillList() {
 
         if (firstTimeInBillList == 0) {
-            Log.i(TAG, "to scan bill list");
+            info(TAG, "to scan bill list");
             firstTimeInBillList = 1;
         } else {
             return;
@@ -472,7 +474,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             if (isInBillList(nodes)) {
                 for (int i = 0; i < nodes.size(); ++i) {
                     AccessibilityNodeInfo node = nodes.get(i);
-                    Log.i(TAG, "checking item " + i);
+                    info(TAG, "checking item " + i);
                     List<AccessibilityNodeInfo> items = new java.util.ArrayList<AccessibilityNodeInfo>();
                     if (findNodesById(items, node, "com.alipay.mobile.bill.list:id/categoryTextView")) {
                         String text = items.get(0).getText().toString();
@@ -516,9 +518,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private void getBillInfo() {
 
         List<AccessibilityNodeInfo> nodes = new java.util.ArrayList<AccessibilityNodeInfo>();
-        Log.i(TAG, "getting bill info");
+        info(TAG, "getting bill info");
         if (isInBill(nodes)) {
-            Log.i(TAG, "getting bill info: is in bill");
             AccessibilityNodeInfo root = nodes.get(0);
             AccessibilityNodeInfo node = getChild(root, "00000");
             AccessibilityNodeInfo button = node;
@@ -575,6 +576,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                             if (nameButtonClicked == 0) {
                                 trueName = null;
                                 shouldInSenderAccount = 1;
+                                info(TAG, "clicking button");
                                 button.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                                 nameButtonClicked = 1;
                                 return;
@@ -624,7 +626,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
 
                 if ("".equals(amount + reference + name + mobile)) {
-                    Log.i(TAG, "bill info not ready");
+                    info(TAG, "bill info not ready");
                     return;
                 }
 
@@ -640,8 +642,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         back(500);
                     }
                 }
+            } else {
+                info(TAG, "bill sender not ready");
             }
 
+        } else {
+
+            info(TAG, "not in bill");
         }
 
     }
@@ -669,10 +676,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 return;
             }
             if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-                Log.i(TAG, "is in bill list");
+                info(TAG, "is in bill list");
                 synchronized (HongbaoService.class) {
                     if (billListRefreshed == 0) {
-                        Log.i(TAG, "to refresh bill list");
+                        info(TAG, "to refresh bill list");
                         billListRefreshed = 1;
                         this.refreshBillList(1500);
                     } else {
@@ -681,7 +688,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
             }
         } else if (isInChat(nodes)) {
-            Log.i(TAG, "is in chat");
+            info(TAG, "is in chat");
 
             if (this.payInfo != null) {
                 back(500);
@@ -698,21 +705,22 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 return;
             }
             if (this.backedFromBusiness == 0) {
-                Log.i(TAG, "back from business");
+                info(TAG, "back from business");
                 this.backedFromBusiness = 1;
                 back(3000);
             }
         } else if (this.payInfo == null && isInSenderAccount(nodes)) {
-            Log.d(TAG, "is in sender account");
+            info(TAG, "is in sender");
 
 
             if (this.shouldInSenderAccount == 0) {
+                info(TAG, "should not in sender");
                 back(500);
 
                 return;
             }
             if (trueName != null) {
-                Log.d(TAG, "already got trueName");
+                info(TAG, "already got trueName");
                 return;
             }
 
@@ -726,12 +734,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             int start = str.indexOf("（");
             int end = str.indexOf("）");
             trueName = str.substring(start + 1, end);
-            Log.i(TAG, "back from sender account");
+            info(TAG, "back from sender account");
             billInfoGot = 0;
             back(500);
             back(500);
         } else if (isInBill(nodes)) {
-            Log.i(TAG, "is in bill");
+            info(TAG, "is in bill");
             if (this.payInfo != null) {
                 back(500);
                 return;
@@ -739,7 +747,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
             if (this.shouldInBillInfo == 1) {
                 if (this.billInfoGot == 0) {
-                    Log.i(TAG, "to get bill info");
+                    info(TAG, "to get bill info");
                     this.getBillInfo();
                     return;
                 }
@@ -748,7 +756,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             }
 
         } else if (isInTransferPage(nodes)) {
-            Log.i(TAG, "is in first page to click transfer app");
+            info(TAG, "is in first page to click transfer app");
             if (this.payInfo != null) {
                 if (this.payInfo.optString("type").equals("alipay")) {
                     nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
@@ -759,7 +767,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 back(500);
             }
         } else if (isInTransferToAccountPage(nodes)) {
-            Log.i(TAG, "is in first page to click transfer app");
+            info(TAG, "is in first page to click transfer app");
             if (this.payInfo != null) {
                 ClipboardManager clipboard = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
                 ClipData clip = ClipData.newPlainText("text", payInfo.optString("account", ""));
@@ -773,7 +781,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 back(500);
             }
         } else if (isInInputAmountToAccount(nodes)) {
-            Log.i(TAG, "is in first page to click transfer app");
+            info(TAG, "is in first page to click transfer app");
             if (this.payInfo != null) {
                 ClipboardManager clipboard = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
                 ClipData clip = ClipData.newPlainText("text", payInfo.optString("amount", "0.01"));
@@ -804,11 +812,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 back(500);
             }
         } else if (isInInputToCard(nodes)) {
-            Log.i(TAG, "is in card info page");
+            info(TAG, "is in card info page");
             if (this.payInfo != null) {
                 sleep(1000);
                 if (nodes.get(0).getText().toString().indexOf("收款人姓名") >= 0) {
-                    Log.i(TAG, "start to paste");
+                    info(TAG, "start to paste");
                     ClipboardManager clipboard = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
                     int i = 0;
 
@@ -837,17 +845,17 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 back(500);
             }
         } else if (this.isInTransferFinishPage(nodes)) {
-            Log.i(TAG, "is in transfer finish page");
+            info(TAG, "is in transfer finish page");
             back(500);
         } else {
             if (this.payInfo != null) {
                 if (isInFirstPage(nodes)) {
-                    Log.i(TAG, "is in first page to click transfer app");
+                    info(TAG, "is in first page to click transfer app");
 
                     nodes.get(1).getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
 
                 } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.openplatform:id/tab_description")) {
-                    Log.i(TAG, "is in tab page, to click first page");
+                    info(TAG, "is in tab page, to click first page");
                     if (nodes.size() > 0) {
                         nodes.get(0).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                     }
@@ -857,7 +865,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             }
 
             if (isInMineView(nodes)) {
-                Log.i(TAG, "is in mine view");
+                info(TAG, "is in mine view");
                 nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText("账单");
                 if (nodes != null && nodes.size() > 0 && firstTimeInMineView == 0) {
                     firstTimeInMineView = 1;
@@ -866,7 +874,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     nodes.get(0).getParent().getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
             } else if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.android.phone.wealth.home:id/sigle_tab_bg")) {
-                Log.i(TAG, "is in tab page, to click my page");
+                info(TAG, "is in tab page, to click my page");
                 if (nodes.size() > 0) {
                     firstTimeInMineView = 0;
                     nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
@@ -877,22 +885,22 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private synchronized void refreshBillList(long ms) {
 
-        Log.i(TAG, "refreshBillList");
+        info(TAG, "refreshBillList");
         sleep(ms);
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         float dpi = metrics.densityDpi;
-        Log.i(TAG, "dpi=" + dpi);
+        info(TAG, "dpi=" + dpi);
         Path path = new Path();
         if (320 == dpi) {//720p
-            Log.i(TAG, "dpi 320");
+            Log.d(TAG, "dpi 320");
             path.moveTo(355, 355);
             path.lineTo(355, 600);
         } else if (480 == dpi) {//1080p
-            Log.i(TAG, "dpi 480");
+            Log.d(TAG, "dpi 480");
             path.moveTo(533, 533);
             path.lineTo(533, 1000);
         } else { //1440
-            Log.i(TAG, "dpi 1440");
+            Log.d(TAG, "dpi 1440");
             path.moveTo(720, 720);
             path.lineTo(720, 1200);
         }
@@ -904,7 +912,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 dispatchGesture(gestureDescription, new GestureResultCallback() {
                     @Override
                     public void onCompleted(GestureDescription gestureDescription) {
-                        Log.i(TAG, "refreshBillList onCompleted");
+                        info(TAG, "refreshBillList onCompleted");
                         mMutex = false;
                         super.onCompleted(gestureDescription);
                         sleep(3000);
@@ -913,7 +921,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
                     @Override
                     public void onCancelled(GestureDescription gestureDescription) {
-                        Log.i(TAG, "refreshBillList onCancelled");
+                        info(TAG, "refreshBillList onCancelled");
                         mMutex = false;
                         super.onCancelled(gestureDescription);
                     }
@@ -1024,7 +1032,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 && !tip.contains("向你付款")
                 ) return true;
 
-        Log.i(TAG, "valid notification received");
+        info(TAG, "valid notification received");
         synchronized (this.notifications) {
             if (this.notificationText != null) {
                 this.notifications.add(tip);
@@ -1137,19 +1145,19 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private void home(long ms) {
         sleep(ms);
-        Log.i(TAG, "press home");
+        info(TAG, "press home");
         performGlobalAction(GLOBAL_ACTION_HOME);
     }
 
     private void back(long ms) {
         sleep(ms);
-        Log.i(TAG, "press back");
+        info(TAG, "press back");
         performGlobalAction(GLOBAL_ACTION_BACK);
     }
 
     private void saveNotification(String amount, String reference, String name, String mobile) {
         String msg = String.format("%s|#|%s|#|%s|#|%s", amount, reference, name, mobile);
-        Log.i(TAG, "saving notification:" + msg);
+        info(TAG, "saving notification:" + msg);
         messages.add(msg);
     }
 
@@ -1173,7 +1181,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
             notificationManager.notify(nid, notification);
 
-            sleep(500);
+            sleep(1100);
         }
 
         messages.clear();
@@ -1189,9 +1197,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void sendNotification(String amount, String reference, String name, String mobile) {
-        Log.i(TAG, "sending notification");
+        info(TAG, "sending notification");
         if ("".equals(amount + reference + name + mobile)) {
-            Log.i(TAG, "skip sending noti");
+            info(TAG, "skip sending noti");
             return;
         }
 
@@ -1299,12 +1307,14 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     @Override
     public void onServiceConnected() {
-        Log.i(TAG, "service connected");
+        info(TAG, "service connected");
         super.onServiceConnected();
         this.watchFlagsFromPreference();
         registerClipEvents();
         this.notificationText = "begin test";
         this.shouldInBillInfo = 0;
+        this.bills.clear();
+        this.messages.clear();
         sleep(500);
         showReminder();
         sleep(2000);
@@ -1354,7 +1364,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         CharSequence text = manager.getPrimaryClip().getItemAt(0).getText();
 
                         if (text != null) {
-                            Log.i(TAG, "copied text: " + text);
+                            info(TAG, "copied text: " + text);
 
                             if (payInfo == null) {
 
@@ -1384,8 +1394,18 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         startActivity(intent);
     }
 
+    public void info(String tag, String message) {
+        Log.i(tag, message);
+        Intent intent = new Intent();
+        intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+        intent.setAction("com.darryncampbell.cordova.plugin.broadcastIntent.ACTION");
+        long tid = Thread.currentThread().getId();
+        intent.putExtra("message", "[" + tid + "]" + message);
+        sendBroadcast(intent);
+    }
+
     private void showReminder() {
-        Log.i(TAG, "show reminder");
+        info(TAG, "show reminder");
         Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.lbdd.reminder");
         //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
         intent.setAction("android.intent.action.MAIN");
