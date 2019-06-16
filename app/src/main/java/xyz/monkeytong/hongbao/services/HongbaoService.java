@@ -504,8 +504,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
 
                 if (manualStart == 0) {
-                    back(800);
-                    back(800);
+                    back(1000);
+                    back(1500);
                 }
                 this.powerUtil.handleWakeLock(false);
             }
@@ -814,7 +814,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         } else if (isInInputToCard(nodes)) {
             info(TAG, "is in card info page");
             if (this.payInfo != null) {
-                sleep(1000);
+                sleep(2000);
                 if (nodes.get(0).getText().toString().indexOf("收款人姓名") >= 0) {
                     info(TAG, "start to paste");
                     ClipboardManager clipboard = (ClipboardManager) this.getSystemService(Context.CLIPBOARD_SERVICE);
@@ -1435,7 +1435,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         trueName = null;
         this.manualStart = manualStart;
         this.powerUtil.handleWakeLock(true);
-        sleep(500);
+        showReminder();
+        sleep(1000);
         startAlipay();
     }
 
