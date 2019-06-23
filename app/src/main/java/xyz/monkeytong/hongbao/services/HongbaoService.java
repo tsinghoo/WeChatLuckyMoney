@@ -81,7 +81,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private List<String> bills = new java.util.ArrayList<String>();
     private List<String> ceoToConfirmList = new ArrayList<String>();
     private PowerUtil powerUtil;
-    private SharedPreferences sharedPreferences;
+    private static SharedPreferences sharedPreferences;
     private int nid = 1;
     private long firstTimeInBillList = 0;
     private int billListRefreshed = 0;
@@ -204,6 +204,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
 
         return false;
+    }
+
+    public static void updatePreference(String key, String value) {
+        if (sharedPreferences == null) {
+            return;
+        }
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(key, value);
+        editor.commit();
     }
 
     private boolean isInBill(List<AccessibilityNodeInfo> nodes) {
@@ -1079,7 +1088,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/tv_counter_values");
 
         String res = "";
-        if (nodes.size() > 0) {
+        if (nodes.size() > 0 && nodes.get(0) != null && nodes.get(0).getText() != null) {
             res = nodes.get(0).getText().toString();
         }
 
@@ -1653,6 +1662,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void sendNotification(String[] info) {
+        info(TAG, "sending notification:" + info.toString());
         Intent intent = new Intent();
         intent.setAction("com.darryncampbell.cordova.plugin.broadcastIntent.ACTION");
         for (int i = 0; i < info.length; i = i + 2) {
@@ -1891,6 +1901,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void watchFlagsFromPreference() {
+
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
 

@@ -5,10 +5,12 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -16,7 +18,9 @@ import android.view.accessibility.AccessibilityManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import xyz.monkeytong.hongbao.R;
+import xyz.monkeytong.hongbao.services.HongbaoService;
 import xyz.monkeytong.hongbao.utils.ConnectivityUtil;
 import xyz.monkeytong.hongbao.utils.UpdateTask;
 
@@ -25,6 +29,7 @@ import java.util.List;
 
 public class MainActivity extends Activity implements AccessibilityManager.AccessibilityStateChangeListener {
 
+    private static final String TAG = "MainActivity";
     //开关切换按钮
     private TextView pluginStatusText;
     private ImageView pluginStatusIcon;
@@ -69,6 +74,12 @@ public class MainActivity extends Activity implements AccessibilityManager.Acces
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
 
         window.setStatusBarColor(0xffE46C62);
+
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+
 
     }
 

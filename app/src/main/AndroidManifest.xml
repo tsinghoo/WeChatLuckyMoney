@@ -44,6 +44,14 @@
             <meta-data android:name="android.accessibilityservice"
                        android:resource="@xml/accessible_service_config"/>
         </service>
+        <receiver android:name=".Receiver">
+
+            <intent-filter>
+                <action android:name="android.intent.action.ceo.config">
+                </action>
+            </intent-filter>
+
+        </receiver>
         <provider
             android:name="android.support.v4.content.FileProvider"
             android:authorities="xyz.monkeytong.hongbao.fileProvider"
