@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.READ_LOGS"/>
+    <uses-permission android:name="android.permission.FLAG_ACTIVITY_NEW_TASK"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <application
             android:allowBackup="true"
