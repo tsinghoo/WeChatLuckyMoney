@@ -80,7 +80,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private List<String> bills = new java.util.ArrayList<String>();
     private List<String> messages = new ArrayList<String>();
     private List<String> ceoToConfirmList = new ArrayList<String>();
-    private List<AccessibilityEvent> events = new ArrayList<AccessibilityEvent>();
     private PowerUtil powerUtil;
     private SharedPreferences sharedPreferences;
     private int nid = 1;
@@ -100,7 +99,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private Timer timer;
     private String trueName = null;
     private JSONObject payInfo = null;
-    private java.util.concurrent.ConcurrentLinkedQueue notifications = new java.util.concurrent.ConcurrentLinkedQueue<String>();
+    private java.util.concurrent.ConcurrentLinkedQueue<String> notifications = new java.util.concurrent.ConcurrentLinkedQueue<String>();
     private boolean isProcessingEvents = false;
 
     /**
@@ -356,7 +355,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         nodes.clear();
         int sel = -1;
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/tv_title_content")) {
-            if (nodes.size() > 0 && nodes.get(0)!=null && nodes.get(0).getText()!=null && nodes.get(0).getText().equals("商户订单")) {
+            if (nodes.size() > 0 && nodes.get(0) != null && nodes.get(0).getText() != null && nodes.get(0).getText().equals("商户订单")) {
                 nodes.clear();
 
                 this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/tabLayout");
@@ -617,23 +616,16 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     }
                 }
                 sendAllNotification();
-                synchronized (this.notifications) {
-                    if (this.notifications.size() > 0) {
-                        this.notificationText = (String) this.notifications.poll();
-                        this.notifications.clear();
-                        firstTimeInMineView = 0;
-                        shouldInBillInfo = 0;
-                        shouldInSenderAccount = 0;
-                        trueName = null;
-                        back(200);
-                        return;
-                    }
-                }
+
+                this.notificationText = null;
 
                 if (manualStart == 0) {
                     back(1000);
                     back(1500);
+                } else {
+                    back(500);
                 }
+
                 this.isProcessingEvents = false;
                 processEvents();
             }
@@ -1309,32 +1301,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             return false;
 
         if (event.getPackageName() == null) return true;
-        events.add(event);
 
 
-        processEvents();
-
-        return true;
-
-    }
-
-    private void processEvents() {
-        if (isProcessingEvents) {
-            return;
-        }
-
-        if (events.size() == 0) {
-            this.powerUtil.handleWakeLock(false);
-            return;
-        }
-
-        AccessibilityEvent event = events.get(0);
-        isProcessingEvents = true;
-        events.remove(0);
-        processEvent(event);
-    }
-
-    private void processEvent(AccessibilityEvent event) {
         if (event.getPackageName().toString().contains(CeoPackageName)) {
             Parcelable parcelable = event.getParcelableData();
             if (parcelable instanceof Notification) {
@@ -1352,8 +1320,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         if (text.contains("待付款") || text.contains("待确认")) {
                             //this.powerUtil.handleWakeLock(true);
                             //this.contentIntent.send();
-                            this.notificationText = "starting ceo";
-                            startCeo();
+                            info(TAG, "adding ceo.otc:" + text);
+                            this.notifications.add("ceo.otc:" + text);
                         }
                     }
 
@@ -1370,56 +1338,65 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 } catch (Exception ex) {
                 }
             }
+        } else if (event.getPackageName().toString().contains(AlipayPackageName)) {
+            String tip = event.getText().get(0).toString();
+            if (!tip.contains(Alipay_NOTIFICATION_TIP)
+                    && !tip.contains("成功收款")
+                    && !tip.contains("向你付款")
+                    ) return true;
 
-            this.isProcessingEvents = false;
+            info(TAG, "adding alipay:" + tip);
+            synchronized (this.notifications) {
+                this.notifications.add("alipay:" + tip);
+            }
+        }
 
+        processEvents();
+
+        return true;
+    }
+
+    private void processEvents() {
+        if (isProcessingEvents) {
             return;
         }
 
-        if (!event.getPackageName().toString().contains(AlipayPackageName)) return;
-        // Not a hongbao
-        String tip = event.getText().get(0).toString();
-        if (!tip.contains(Alipay_NOTIFICATION_TIP)
-                && !tip.contains("成功收款")
-                && !tip.contains("向你付款")
-                ) return;
+        if (notifications.size() == 0) {
+            this.powerUtil.handleWakeLock(false);
+            return;
+        }
 
-        info(TAG, "valid notification received");
-        synchronized (this.notifications) {
-            if (this.notificationText != null) {
-                this.notifications.add(tip);
-                return;
-            }
+        isProcessingEvents = true;
+        this.notificationText = this.notifications.poll();
+        info(TAG, "processing " + this.notificationText);
+        processEvent();
+    }
+
+    private void processEvent() {
+        if (this.notificationText.startsWith("ceo")) {
+
+            startCeo();
+        } else if (this.notificationText.startsWith("alipay")) {
+
+            this.billListRefreshed = 0;
+            this.firstTimeInBillList = 0;
+            this.firstTimeInMineView = 0;
+            this.manualStart = 0;
+            this.shouldInBillInfo = 0;
+            this.messages.clear();
+            this.backedFromBusiness = 0;
+            this.backedFromChat = 0;
+            //notification.contentIntent.send();
+            startAlipay();
         }
-        this.notificationText = tip;
-        this.billListRefreshed = 0;
-        this.firstTimeInBillList = 0;
-        this.firstTimeInMineView = 0;
-        this.manualStart = 0;
-        this.shouldInBillInfo = 0;
-        this.messages.clear();
-        this.backedFromBusiness = 0;
-        this.backedFromChat = 0;
-        Parcelable parcelable = event.getParcelableData();
-        if (parcelable instanceof Notification) {
-            final Notification notification = (Notification) parcelable;
-            try {
-                /* 清除signature,避免进入会话后误判 */
-                signature.cleanSignature();
-                this.contentIntent = notification.contentIntent;
-                this.contentIntent.send();
-                this.powerUtil.handleWakeLock(true);
-                //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
-                sleep(500);
-                //notification.contentIntent.send();
-                startAlipay();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+
     }
 
     private void startCeo() {
+
+        this.powerUtil.handleWakeLock(true);
+        //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
+        sleep(500);
         Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.shiyebaidu.ceo");
         //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
         intent.setAction("android.intent.action.MAIN");
@@ -1670,7 +1647,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
 
         messages.clear();
-        this.notificationText = null;
     }
 
     private void sleep(long ms) {
@@ -1813,11 +1789,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         //startCeoOrderActivity();
         //doStartApplicationWithPackageName(CeoPackageName);
         super.onServiceConnected();
-
-        this.checkCeo();
-
         this.watchFlagsFromPreference();
-        /*test
+
         registerClipEvents();
         this.notificationText = "begin test";
         this.shouldInBillInfo = 0;
@@ -1829,9 +1802,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         startAlipay();
 
         autoWatch();
-        */
-
-
     }
 
 
@@ -1896,6 +1866,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void startAlipay() {
+
+        this.powerUtil.handleWakeLock(true);
+        //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
+        sleep(500);
         Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.eg.android.AlipayGphone");
         //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
         intent.setAction("android.intent.action.MAIN");
@@ -1944,11 +1918,18 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         shouldInBillInfo = 0;
         shouldInSenderAccount = 0;
         trueName = null;
+        this.isProcessingEvents = true;
         this.manualStart = manualStart;
         this.powerUtil.handleWakeLock(true);
         showReminder();
         sleep(1000);
         startAlipay();
+    }
+
+    private void checkCeo() {
+        this.notificationText = "starting ceo";
+        this.isProcessingEvents = true;
+        startCeo();
     }
 
     @Override
@@ -1964,13 +1945,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         } else if (key.equals("pref_open_delay")) {
             autoWatch();
         }
-    }
-
-    private void checkCeo() {
-
-        this.notificationText = "starting ceo";
-        startCeo();
-
     }
 
     @Override
