@@ -932,7 +932,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 scanBillList();
             }
         } else {
-            sleep(2000);
+            sleep(5000);
             scanBillList();
         }
 
