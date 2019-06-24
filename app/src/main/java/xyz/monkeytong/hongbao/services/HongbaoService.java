@@ -1150,7 +1150,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
         orderId = orderId.replace("复制", "").trim();
 
-        return new String[]{"app", "ceo", "id", tid, "trueName", name, "amount", amount};
+        return new String[]{"app", "ceo", "id", tid, "trueName", name, "amount", amount, "status", "买待确认"};
     }
 
     private void scanCeoToConfirmList() {
