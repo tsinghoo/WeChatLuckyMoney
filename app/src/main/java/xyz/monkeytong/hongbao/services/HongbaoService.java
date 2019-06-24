@@ -30,7 +30,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
-import java.util.AbstractCollection;
 import java.util.ArrayList;
 
 import xyz.monkeytong.hongbao.R;
@@ -45,7 +44,6 @@ import android.widget.RemoteViews;
 import org.json.JSONObject;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
@@ -795,7 +793,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         if (trueName != null) {
                             name = trueName;
                         }
-                        sendNotification(new String[]{"type", "alipay", "tid", tid, "amount", amount, "reference", reference, "name", name, "mobile", mobile});
+                        sendIntent(new String[]{"app", "com.eg.android.AlipayGphone", "id", tid, "amount", amount, "referenceId", reference, "trueName", name});
                         firstTimeInBillList = 0;
                         back(500);
                     }
@@ -1015,7 +1013,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
                 back(500);
             } else {
-                sendNotification(info);
+                sendIntent(info);
                 back(500);
             }
         } else if (this.isInCeoOtcBusiness(nodes) > -1) {
@@ -1085,7 +1083,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private String getTextById(String id) {
         List<AccessibilityNodeInfo> nodes = new ArrayList<AccessibilityNodeInfo>();
-        this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/tv_counter_values");
+        this.findNodesById(nodes, this.rootNodeInfo, id);
 
         String res = "";
         if (nodes.size() > 0 && nodes.get(0) != null && nodes.get(0).getText() != null) {
@@ -1152,7 +1150,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
         orderId = orderId.replace("复制", "").trim();
 
-        return new String[]{"type", "ceo.otc卖单", "tid", tid, "name", name, "mobile", mobile, "amount", amount, "time", time};
+        return new String[]{"app", "ceo", "id", tid, "trueName", name, "amount", amount};
     }
 
     private void scanCeoToConfirmList() {
@@ -1661,7 +1659,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
     }
 
-    private void sendNotification(String[] info) {
+    private void sendIntent(String[] info) {
         info(TAG, "sending notification:" + info.toString());
         Intent intent = new Intent();
         intent.setAction("com.darryncampbell.cordova.plugin.broadcastIntent.ACTION");
@@ -1941,10 +1939,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             if (changedValue == false) {
                 this.checkAlipay(1);
             } else {
-                //this.checkCeo();
-
-                sleep(5000);
-                sendNotification(new String[]{"type", "test", "data", "test"});
+                sleep(1000);
+                this.checkCeo();
+                //sendIntent(new String[]{"type", "test", "data", "test"});
             }
         } else if (key.equals("pref_open_delay")) {
             autoWatch();
