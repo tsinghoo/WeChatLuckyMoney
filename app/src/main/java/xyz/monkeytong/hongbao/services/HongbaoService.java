@@ -290,12 +290,22 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         nodes.clear();
 
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.alipay.mobile.antui:id/item_left_text")) {
-            if (nodes.size() > 2 && nodes.get(2).getText().equals("账单")) {
+            if (nodes.size() > 2 && containsText(nodes, "账单") > -1) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private int containsText(List<AccessibilityNodeInfo> nodes, String text) {
+        for (int i = 0; i < nodes.size(); ++i) {
+            if (text.equals(nodes.get(i).getText())) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private boolean isInFirstPage(List<AccessibilityNodeInfo> nodes) {
