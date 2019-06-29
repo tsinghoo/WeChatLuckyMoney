@@ -99,6 +99,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private JSONObject payInfo = null;
     private java.util.concurrent.ConcurrentLinkedQueue<String> notifications = new java.util.concurrent.ConcurrentLinkedQueue<String>();
     private boolean isProcessingEvents = false;
+    private int firstTimeToScanOtcConfirmList = 0;
+    private int firstTimeInOtcOrderDetail = 0;
 
     /**
      * AccessibilityEvent
@@ -172,6 +174,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     public boolean findNodesById(List<AccessibilityNodeInfo> nodes, AccessibilityNodeInfo root, String id) {
+        this.rootNodeInfo = getRootInActiveWindow();
+
         for (int i = 0; i < root.getChildCount(); ++i) {
             AccessibilityNodeInfo child = root.getChild(i);
             if (child == null) {
@@ -357,6 +361,19 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         return false;
     }
 
+    private boolean isInCeoOtcBuyDetail(List<AccessibilityNodeInfo> nodes) {
+        AccessibilityNodeInfo lastNode = null, node;
+        nodes.clear();
+
+        if (this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/tv_title_content")) {
+            if (nodes.size() > 0 && nodes.get(0) != null && nodes.get(0).getText() != null && nodes.get(0).getText().toString().equals("订单详情（买）")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private int isInCeoOtcBusiness(List<AccessibilityNodeInfo> nodes) {
         AccessibilityNodeInfo lastNode = null;
         nodes.clear();
@@ -427,6 +444,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         return false;
     }
+
     private int containsText(List<AccessibilityNodeInfo> nodes, String text) {
         for (int i = 0; i < nodes.size(); ++i) {
             if (text.equals(nodes.get(i).getText())) {
@@ -1012,25 +1030,69 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             info(TAG, "is in transfer finish page");
             back(500);
         } else if (this.isInCeoOtcMenu(nodes)) {
-            info(TAG, "is in ceo otc");
+            info(TAG, "is in ceo otc menu");
             sleep(500);
             nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
 
         } else if (this.isInCeoOtcSellDetail(nodes)) {
-            String[] info = this.getSellDetailInfo();
-            if (info == null) {
-
-                back(500);
-            } else {
-                sendIntent(info);
-                back(500);
+            info(TAG, "is in otc sell detail");
+            if (firstTimeInOtcOrderDetail == 0) {
+                firstTimeInOtcOrderDetail = 1;
+                info(TAG, "get order info");
+                sleep(2000);
+                String[] info = this.getSellDetailInfo();
+                if (info == null) {
+                    info(TAG, "no sell detail info found");
+                    firstTimeToScanOtcConfirmList = 0;
+                    back(500);
+                } else {
+                    info[13] = "买" + info[13];
+                    sendIntent(info);
+                    firstTimeToScanOtcConfirmList = 0;
+                    back(500);
+                }
+            }
+        } else if (this.isInCeoOtcBuyDetail(nodes)) {
+            info(TAG, "is in otc buy detail");
+            if (firstTimeInOtcOrderDetail == 0) {
+                firstTimeInOtcOrderDetail = 1;
+                info(TAG, "get buy info");
+                sleep(1500);
+                String[] info = this.getSellDetailInfo();
+                if (info == null) {
+                    info(TAG, "no buy detail info found");
+                    firstTimeToScanOtcConfirmList = 0;
+                    back(500);
+                } else {
+                    info[13] = "卖" + info[13];
+                    sendIntent(info);
+                    firstTimeToScanOtcConfirmList = 0;
+                    back(500);
+                }
             }
         } else if (this.isInCeoOtcBusiness(nodes) > -1) {
             info(TAG, "is in ceo otc business");
             int sel = this.isInCeoOtcBusiness(nodes);
+
+            if (!nodes.get(3).getText().toString().equals("待确认")) {
+
+                info(TAG, "not have 待确认");
+                return;
+            }
+
             if (sel == 0) {
-                info(TAG, "clicking 3");
-                nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+
+                if (firstTimeToScanOtcConfirmList == 0) {
+                    firstTimeToScanOtcConfirmList = 1;
+                    info(TAG, "to scan ceo otc toconfirm list");
+                    sleep(2000);
+                    this.scanCeoToConfirmList();
+                }
+
+                if (1 == 0) {
+                    info(TAG, "clicking 3");
+                    nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }
             } else if (sel == 1) {
                 info(TAG, "clicking 3");
                 nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
@@ -1038,9 +1100,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 info(TAG, "clicking 3");
                 nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
             } else if (sel == 3) {
-                info(TAG, "to scan ceo otc toconfirm list");
-                this.scanCeoToConfirmList();
-
             } else {
                 nodes.get(3).performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
@@ -1049,7 +1108,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             info(TAG, "is in ceo otc");
             sleep(500);
             nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
-
         } else if (this.isInCeoNotOtc(nodes)) {
             info(TAG, "is in ceo not otc");
             sleep(500);
@@ -1091,7 +1149,19 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private String getTextById(String id) {
-        List<AccessibilityNodeInfo> nodes = new ArrayList<AccessibilityNodeInfo>();
+        this.rootNodeInfo = getRootInActiveWindow();
+
+        List<AccessibilityNodeInfo> nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId(id);
+        if (nodes!=null && nodes.size()>0){
+            if (nodes.get(0).getText()!=null){
+                return nodes.get(0).getText().toString();
+            }else{
+                return null;
+            }
+
+        }
+
+        nodes = new ArrayList<AccessibilityNodeInfo>();
         this.findNodesById(nodes, this.rootNodeInfo, id);
 
         String res = "";
@@ -1103,34 +1173,57 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private String[] getSellDetailInfo() {
+        this.rootNodeInfo = getRootInActiveWindow();
+
+
+        String status = this.getTextById("com.shiyebaidu.ceo:id/tv_status");
+        int retries = 0;
+        while ((status == null || "".equals(status)) && retries < 5) {
+            sleep(1000);
+            info(TAG, "retries:" + retries);
+            retries++;
+            status = this.getTextById("com.shiyebaidu.ceo:id/tv_status");
+        }
+
+        if (status == null || "".equals(status)) {
+            info(TAG, "status is empty");
+            return null;
+        }
+
+
         String nick = this.getTextById("com.shiyebaidu.ceo:id/tv_counter_values");
         if (nick == null) {
             info(TAG, "nick is null");
             return null;
         }
+
         String name = this.getTextById("com.shiyebaidu.ceo:id/tv_counter_true_name");
-        if (name == null) {
+        if (name == null || "".equals(name)) {
             info(TAG, "name is null");
             return null;
         }
+
         String mobile = this.getTextById("com.shiyebaidu.ceo:id/tv_mobile");
-        if (mobile == null) {
+        if (mobile == null || "".equals(mobile)) {
             info(TAG, "mobile is null");
             return null;
         }
+
+
         String amount = this.getTextById("com.shiyebaidu.ceo:id/tv_transaction_amount");
-        if (amount == null) {
-            info(TAG, "amount is null");
+        if (amount == null || "".equals(amount)) {
+            info(TAG, "amount is empty");
             return null;
         }
         amount = amount.replace("CNY", "").trim();
+
         String price = this.getTextById("com.shiyebaidu.ceo:id/tv_price");
         if (price == null) {
             info(TAG, "price is null");
             return null;
         }
-
         price = price.replace("CNY", "").trim();
+
         String num = this.getTextById("com.shiyebaidu.ceo:id/tv_num");
         if (num == null) {
             info(TAG, "num is null");
@@ -1139,7 +1232,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         num = num.replace("QC", "").trim();
 
         String tid = this.getTextById("com.shiyebaidu.ceo:id/tv_trade_id");
-        if (tid == null) {
+        if (tid == null || "".equals(tid)) {
             info(TAG, "tid is null");
             return null;
         }
@@ -1159,11 +1252,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
         orderId = orderId.replace("复制", "").trim();
 
-        return new String[]{"app", "ceo", "id", tid, "trueName", name, "amount", amount, "status", "买待确认"};
+
+        return new String[]{"app", "ceo", "title", "OTC新订单", "id", tid, "trueName", name, "amount", amount, "createTime", time, "status", status};
     }
 
     private void scanCeoToConfirmList() {
         List<AccessibilityNodeInfo> nodes = new ArrayList<AccessibilityNodeInfo>();
+        this.rootNodeInfo = getRootInActiveWindow();
         this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/tv_coin_name");
         if (nodes.size() > 0) {
             AccessibilityNodeInfo root = nodes.get(0).getParent().getParent().getParent().getParent();
@@ -1171,16 +1266,22 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             for (int i = 0; i < count; ++i) {
                 AccessibilityNodeInfo node = this.getChild(root, i + "00");
                 String nick = node.getText().toString();
+
                 node = this.getChild(root, i + "01");
                 String status = node.getText().toString();
+
                 node = this.getChild(root, i + "201");
                 String coin = node.getText().toString();
+
                 node = this.getChild(root, i + "202");
                 String time = node.getText().toString();
+
                 node = this.getChild(root, i + "2101");
                 String price = node.getText().toString();
+
                 node = this.getChild(root, i + "2111");
                 String amount = node.getText().toString();
+
                 node = this.getChild(root, i + "2121");
                 String total = node.getText().toString();
 
@@ -1191,6 +1292,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 } else {
                     ceoToConfirmList.add(key);
                     info(TAG, "clicking");
+                    firstTimeInOtcOrderDetail = 0;
                     node.getParent().getParent().getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                     return;
                 }
@@ -1418,17 +1520,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private void processEvent() {
         if (this.notificationText.startsWith("ceo")) {
-
             startCeo();
         } else if (this.notificationText.startsWith("alipay")) {
 
-            this.billListRefreshed = 0;
-            this.firstTimeInBillList = 0;
-            this.firstTimeInMineView = 0;
-            this.manualStart = 0;
-            this.shouldInBillInfo = 0;
-            this.backedFromBusiness = 0;
-            this.backedFromChat = 0;
             //notification.contentIntent.send();
             startAlipay();
         }
@@ -1437,6 +1531,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private void startCeo() {
 
+        firstTimeToScanOtcConfirmList = 0;
+        firstTimeInOtcOrderDetail = 0;
+        ceoToConfirmList.clear();
         this.powerUtil.handleWakeLock(true);
         //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
         sleep(500);
@@ -1671,6 +1768,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private void sendIntent(String[] info) {
         info(TAG, "sending notification:" + info.toString());
         Intent intent = new Intent();
+        intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
         intent.setAction("com.darryncampbell.cordova.plugin.broadcastIntent.ACTION");
         for (int i = 0; i < info.length; i = i + 2) {
             intent.putExtra(info[i], info[i + 1]);
@@ -1800,6 +1898,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         registerClipEvents();
         this.notificationText = "begin test";
         this.shouldInBillInfo = 0;
+        firstTimeToScanOtcConfirmList = 0;
+        firstTimeInOtcOrderDetail = 0;
         this.bills.clear();
         sleep(500);
         showReminder();
@@ -1874,6 +1974,14 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private void startAlipay() {
 
+        this.billListRefreshed = 0;
+        this.firstTimeInBillList = 0;
+        this.firstTimeInMineView = 0;
+        this.manualStart = 0;
+        this.shouldInBillInfo = 0;
+        this.backedFromBusiness = 0;
+        this.backedFromChat = 0;
+
         this.powerUtil.handleWakeLock(true);
         //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
         sleep(500);
@@ -1918,7 +2026,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void checkAlipay(int manualStart) {
-        this.notificationText = "begin test";
+        this.notificationText = "alipay:test";
         backedFromChat = 0;
         backedFromBusiness = 0;
         firstTimeInMineView = 0;
@@ -1935,7 +2043,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void checkCeo() {
-        this.notificationText = "starting ceo";
+        this.notificationText = "ceo:test";
         this.isProcessingEvents = true;
         startCeo();
     }
