@@ -980,64 +980,76 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         } else if (isInInputAmountToAccount(nodes)) {
             info(TAG, "is in first page to click transfer app");
             if (HongbaoService.this.payInfo != null) {
-                ClipboardManager clipboard = (ClipboardManager) HongbaoService.this.getSystemService(Context.CLIPBOARD_SERVICE);
+                final ClipboardManager clipboard = (ClipboardManager) HongbaoService.this.getSystemService(Context.CLIPBOARD_SERVICE);
                 ClipData clip = ClipData.newPlainText("text", payInfo.optString("amount", "0.01"));
                 clipboard.setPrimaryClip(clip);
 
                 nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
                 nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_PASTE);
                 nodes.get(1).performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                sleep(3000);
+                final List<AccessibilityNodeInfo> finalNodes1 = nodes;
+                sleep(3000, new Runnable() {
+                    @Override
+                    public void run() {
 
+                        HongbaoService.this.rootNodeInfo = getRootInActiveWindow();
+                        finalNodes1.clear();
+                        if (HongbaoService.this.findNodesById(finalNodes1, HongbaoService.this.rootNodeInfo, "com.alipay.mobile.antui:id/ensure")) {
+                            AccessibilityNodeInfo node = getChild(finalNodes1.get(0).getParent().getParent(), "10");
+                            if (node != null) {
+                                ClipData clip = ClipData.newPlainText("text", payInfo.optString("name").substring(0, 1));
+                                clipboard.setPrimaryClip(clip);
 
-                HongbaoService.this.rootNodeInfo = getRootInActiveWindow();
-                nodes.clear();
-                if (HongbaoService.this.findNodesById(nodes, HongbaoService.this.rootNodeInfo, "com.alipay.mobile.antui:id/ensure")) {
-                    AccessibilityNodeInfo node = getChild(nodes.get(0).getParent().getParent(), "10");
-                    if (node != null) {
-                        clip = ClipData.newPlainText("text", payInfo.optString("name").substring(0, 1));
-                        clipboard.setPrimaryClip(clip);
+                                node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                                node.performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                                finalNodes1.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                            }
+                        }
 
-                        node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
-                        node.performAction(AccessibilityNodeInfo.ACTION_PASTE);
-                        nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        payInfo = null;
                     }
-                }
+                });
 
-                payInfo = null;
+
             } else {
                 back(500);
             }
         } else if (isInInputToCard(nodes)) {
             info(TAG, "is in card info page");
             if (HongbaoService.this.payInfo != null) {
-                sleep(2000);
-                if (nodes.get(0).getText().toString().indexOf("收款人姓名") >= 0) {
-                    info(TAG, "start to paste");
-                    ClipboardManager clipboard = (ClipboardManager) HongbaoService.this.getSystemService(Context.CLIPBOARD_SERVICE);
-                    int i = 0;
+                final List<AccessibilityNodeInfo> finalNodes = nodes;
+                sleep(2000, new Runnable() {
+                    @Override
+                    public void run() {
 
-                    ClipData clip = ClipData.newPlainText("text", payInfo.optString("name", ""));
-                    clipboard.setPrimaryClip(clip);
-                    nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
-                    sleep(500);
-                    nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
-                    sleep(500);
+                        if (finalNodes.get(0).getText().toString().indexOf("收款人姓名") >= 0) {
+                            info(TAG, "start to paste");
+                            ClipboardManager clipboard = (ClipboardManager) HongbaoService.this.getSystemService(Context.CLIPBOARD_SERVICE);
+                            int i = 0;
 
-                    clip = ClipData.newPlainText("text", payInfo.optString("card", ""));
-                    clipboard.setPrimaryClip(clip);
-                    nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
-                    sleep(500);
-                    nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
-                    sleep(500);
+                            ClipData clip = ClipData.newPlainText("text", payInfo.optString("name", ""));
+                            clipboard.setPrimaryClip(clip);
+                            finalNodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                            tsleep(500);
+                            finalNodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                            tsleep(500);
 
-                    clip = ClipData.newPlainText("text", payInfo.optString("amount", ""));
-                    clipboard.setPrimaryClip(clip);
-                    nodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
-                    sleep(500);
-                    nodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
-                    payInfo = null;
-                }
+                            clip = ClipData.newPlainText("text", payInfo.optString("card", ""));
+                            clipboard.setPrimaryClip(clip);
+                            finalNodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                            tsleep(500);
+                            finalNodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                            tsleep(500);
+
+                            clip = ClipData.newPlainText("text", payInfo.optString("amount", ""));
+                            clipboard.setPrimaryClip(clip);
+                            finalNodes.get(i).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                            tsleep(500);
+                            finalNodes.get(i++).performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                            payInfo = null;
+                        }
+                    }
+                });
             } else {
                 back(500);
             }
@@ -1046,7 +1058,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             back(500);
         } else if (HongbaoService.this.isInCeoOtcMenu(nodes)) {
             info(TAG, "is in ceo otc menu");
-            sleep(500);
+            tsleep(500);
             nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
 
         } else if (HongbaoService.this.isInCeoOtcSellDetail(nodes)) {
@@ -1054,36 +1066,45 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             if (firstTimeInOtcOrderDetail == 0) {
                 firstTimeInOtcOrderDetail = 1;
                 info(TAG, "get order info");
-                sleep(2000);
-                String[] info = HongbaoService.this.getSellDetailInfo();
-                if (info == null) {
-                    info(TAG, "no sell detail info found");
-                    firstTimeToScanOtcConfirmList = 0;
-                    back(500);
-                } else {
-                    info[13] = "买" + info[13];
-                    sendIntent(info);
-                    firstTimeToScanOtcConfirmList = 0;
-                    back(500);
-                }
+                sleep(2000, new Runnable() {
+                    @Override
+                    public void run() {
+
+                        String[] info = HongbaoService.this.getSellDetailInfo();
+                        if (info == null) {
+                            info(TAG, "no sell detail info found");
+                            firstTimeToScanOtcConfirmList = 0;
+                            back(500);
+                        } else {
+                            info[13] = "买" + info[13];
+                            sendIntent(info);
+                            firstTimeToScanOtcConfirmList = 0;
+                            back(500);
+                        }
+                    }
+                });
             }
         } else if (HongbaoService.this.isInCeoOtcBuyDetail(nodes)) {
             info(TAG, "is in otc buy detail");
             if (firstTimeInOtcOrderDetail == 0) {
                 firstTimeInOtcOrderDetail = 1;
                 info(TAG, "get buy info");
-                sleep(1500);
-                String[] info = HongbaoService.this.getSellDetailInfo();
-                if (info == null) {
-                    info(TAG, "no buy detail info found");
-                    firstTimeToScanOtcConfirmList = 0;
-                    back(500);
-                } else {
-                    info[13] = "卖" + info[13];
-                    sendIntent(info);
-                    firstTimeToScanOtcConfirmList = 0;
-                    back(500);
-                }
+                sleep(1500, new Runnable() {
+                    @Override
+                    public void run() {
+                        String[] info = HongbaoService.this.getSellDetailInfo();
+                        if (info == null) {
+                            info(TAG, "no buy detail info found");
+                            firstTimeToScanOtcConfirmList = 0;
+                            back(500);
+                        } else {
+                            info[13] = "卖" + info[13];
+                            sendIntent(info);
+                            firstTimeToScanOtcConfirmList = 0;
+                            back(500);
+                        }
+                    }
+                });
             }
         } else if (HongbaoService.this.isInCeoOtcBusiness(nodes) > -1) {
             info(TAG, "is in ceo otc business");
@@ -1100,8 +1121,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 if (firstTimeToScanOtcConfirmList == 0) {
                     firstTimeToScanOtcConfirmList = 1;
                     info(TAG, "to scan ceo otc toconfirm list");
-                    sleep(2000);
-                    HongbaoService.this.scanCeoToConfirmList();
+                    sleep(2000, new Runnable() {
+                        @Override
+                        public void run() {
+                            HongbaoService.this.scanCeoToConfirmList();
+                        }
+                    });
                 }
 
                 if (1 == 0) {
@@ -1121,11 +1146,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         } else if (HongbaoService.this.isInCeoOtc(nodes)) {
             info(TAG, "is in ceo otc");
-            sleep(500);
+            tsleep(500);
             nodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
         } else if (HongbaoService.this.isInCeoNotOtc(nodes)) {
             info(TAG, "is in ceo not otc");
-            sleep(500);
+            tsleep(500);
             nodes.get(3).getParent().getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
         } else {
             if (HongbaoService.this.payInfo != null) {
@@ -1161,6 +1186,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
             }
         }
+    }
+
+    private void tsleep(long i) {
+        try {
+            Thread.sleep(i);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private String getTextById(String id) {
@@ -1316,7 +1350,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private synchronized void refreshBillList(long ms) {
 
         info(TAG, "refreshBillList");
-        sleep(ms);
+        tsleep(ms);
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         float dpi = metrics.densityDpi;
         info(TAG, "dpi=" + dpi);
@@ -1345,8 +1379,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         info(TAG, "refreshBillList onCompleted");
                         mMutex = false;
                         super.onCompleted(gestureDescription);
-                        sleep(3000);
-                        scanBillList();
+                        sleep(3000, new Runnable() {
+                            @Override
+                            public void run() {
+                                scanBillList();
+                            }
+                        });
                     }
 
                     @Override
@@ -1358,12 +1396,20 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }, null);
             } catch (Exception ex) {
                 ex.printStackTrace();
-                sleep(2000);
-                scanBillList();
+                sleep(2000, new Runnable() {
+                    @Override
+                    public void run() {
+                        scanBillList();
+                    }
+                });
             }
         } else {
-            sleep(5000);
-            scanBillList();
+            sleep(5000, new Runnable() {
+                @Override
+                public void run() {
+                    scanBillList();
+                }
+            });
         }
 
     }
@@ -1544,7 +1590,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         ceoToConfirmList.clear();
         HongbaoService.this.powerUtil.handleWakeLock(true);
         //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
-        sleep(500);
+        tsleep(500);
         Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.shiyebaidu.ceo");
         //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
         intent.setAction("android.intent.action.MAIN");
@@ -1754,23 +1800,28 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void home(long ms) {
-        sleep(ms);
-        info(TAG, "press home");
-        performGlobalAction(GLOBAL_ACTION_HOME);
+        sleep(ms, new Runnable() {
+            @Override
+            public void run() {
+
+                info(TAG, "press home");
+                performGlobalAction(GLOBAL_ACTION_HOME);
+            }
+        });
     }
 
     private void back(long ms) {
-        sleep(ms);
-        info(TAG, "press back");
-        performGlobalAction(GLOBAL_ACTION_BACK);
+        sleep(ms, new Runnable() {
+            @Override
+            public void run() {
+                info(TAG, "press back");
+                performGlobalAction(GLOBAL_ACTION_BACK);
+            }
+        });
     }
 
-    private void sleep(long ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (Exception ex) {
-
-        }
+    private void sleep(long ms, Runnable r) {
+        new android.os.Handler().postDelayed(r, ms);
     }
 
     private void sendIntent(String[] info) {
@@ -1909,11 +1960,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         firstTimeToScanOtcConfirmList = 0;
         firstTimeInOtcOrderDetail = 0;
         HongbaoService.this.bills.clear();
-        sleep(500);
+        tsleep(500);
         showReminder();
-        sleep(2000);
+        tsleep(2000);
         startAlipay();
-        sleep(2000);
+        tsleep(2000);
         startCeo();
 
         autoWatch();
@@ -1992,7 +2043,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         HongbaoService.this.powerUtil.handleWakeLock(true);
         //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
-        sleep(500);
+        tsleep(500);
         Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.eg.android.AlipayGphone");
         //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
         intent.setAction("android.intent.action.MAIN");
@@ -2046,7 +2097,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         HongbaoService.this.manualStart = manualStart;
         HongbaoService.this.powerUtil.handleWakeLock(true);
         showReminder();
-        sleep(1000);
+        tsleep(1000);
         startAlipay();
     }
 
@@ -2064,8 +2115,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             if (changedValue == false) {
                 HongbaoService.this.checkAlipay(1);
             } else {
-                sleep(1000);
-                HongbaoService.this.checkCeo();
+                sleep(1000, new Runnable() {
+                    @Override
+                    public void run() {
+                        HongbaoService.this.checkCeo();
+                    }
+                });
                 //sendIntent(new String[]{"type", "test", "data", "test"});
             }
         } else if (key.equals("pref_open_delay")) {
