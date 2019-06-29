@@ -174,7 +174,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     public boolean findNodesById(List<AccessibilityNodeInfo> nodes, AccessibilityNodeInfo root, String id) {
-        this.rootNodeInfo = getRootInActiveWindow();
+        if (root == null) {
+            return false;
+        }
 
         for (int i = 0; i < root.getChildCount(); ++i) {
             AccessibilityNodeInfo child = root.getChild(i);
@@ -331,11 +333,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/tab_text")) {
             if (nodes.size() > 3 && nodes.get(3).getText().equals("法币")) {
-                node = nodes.get(3);
-                if (!node.isSelected()) {
-                    return false;
-                }
-
                 nodes.clear();
 
                 this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/iv_otc_user_hub");
@@ -435,10 +432,14 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         if (this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/tab_text")) {
             if (nodes.size() > 3 && nodes.get(3).getText().equals("法币")) {
-                node = nodes.get(3);
-                if (!node.isSelected()) {
-                    return true;
+                nodes.clear();
+
+                this.findNodesById(nodes, this.rootNodeInfo, "com.shiyebaidu.ceo:id/iv_otc_user_hub");
+                if (nodes.size() > 0) {
+                    return false;
                 }
+
+                return true;
             }
         }
 
@@ -1152,10 +1153,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.rootNodeInfo = getRootInActiveWindow();
 
         List<AccessibilityNodeInfo> nodes = this.rootNodeInfo.findAccessibilityNodeInfosByViewId(id);
-        if (nodes!=null && nodes.size()>0){
-            if (nodes.get(0).getText()!=null){
+        if (nodes != null && nodes.size() > 0) {
+            if (nodes.get(0).getText() != null) {
                 return nodes.get(0).getText().toString();
-            }else{
+            } else {
                 return null;
             }
 
