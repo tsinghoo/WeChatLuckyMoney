@@ -99,10 +99,14 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private JSONObject payInfo = null;
     private java.util.concurrent.ConcurrentLinkedQueue<String> notifications = new java.util.concurrent.ConcurrentLinkedQueue<String>();
     private boolean isProcessingEvents = false;
-    private int firstTimeToScanOtcConfirmList = 0;
+    private int firstTimeInOtcBusiness0 = 0;
     private int firstTimeInOtcOrderDetail = 0;
     private int otcMenuBusinessClicked = 0;
     private int otcMenuClicked = 0;
+    private int firstTimeInOtcBusiness1 = 0;
+    private int firstTimeInOtcBusiness2 = 0;
+    private int firstTimeInOtcBusiness3 = 0;
+    private int firstTimeInOtcBusiness4 = 0;
 
     /**
      * AccessibilityEvent
@@ -433,7 +437,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 if (nodes.size() > 0) {
                     return true;
                 }
-
             }
         }
 
@@ -1076,7 +1079,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     }
                 });
             }
-
         } else if (HongbaoService.this.isInCeoOtcSellDetail(nodes)) {
             info(TAG, "is in otc sell detail");
             if (firstTimeInOtcOrderDetail == 0) {
@@ -1089,12 +1091,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         String[] info = HongbaoService.this.getSellDetailInfo();
                         if (info == null) {
                             info(TAG, "no sell detail info found");
-                            firstTimeToScanOtcConfirmList = 0;
+                            firstTimeInOtcBusiness0 = 0;
                             back(500);
                         } else {
                             info[13] = "买" + info[13];
                             sendIntent(info);
-                            firstTimeToScanOtcConfirmList = 0;
+                            firstTimeInOtcBusiness0 = 0;
                             back(500);
                         }
                     }
@@ -1111,12 +1113,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         String[] info = HongbaoService.this.getSellDetailInfo();
                         if (info == null) {
                             info(TAG, "no buy detail info found");
-                            firstTimeToScanOtcConfirmList = 0;
+                            firstTimeInOtcBusiness0 = 0;
                             back(500);
                         } else {
                             info[13] = "卖" + info[13];
                             sendIntent(info);
-                            firstTimeToScanOtcConfirmList = 0;
+                            firstTimeInOtcBusiness0 = 0;
                             back(500);
                         }
                     }
@@ -1127,39 +1129,46 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             int sel = HongbaoService.this.isInCeoOtcBusiness(nodes);
 
             if (!nodes.get(3).getText().toString().equals("待确认")) {
-
                 info(TAG, "not have 待确认");
                 return;
             }
 
             if (sel == 0) {
-
-                if (firstTimeToScanOtcConfirmList == 0) {
-                    firstTimeToScanOtcConfirmList = 1;
+                if (firstTimeInOtcBusiness0 == 0) {
+                    firstTimeInOtcBusiness0 = 1;
+                    info(TAG, "0: clicking 3");
+                    nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }
+            } else if (sel == 1) {
+                if (firstTimeInOtcBusiness1 == 0) {
+                    firstTimeInOtcBusiness1 = 1;
+                    info(TAG, "1: clicking 3");
+                    nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }
+            } else if (sel == 2) {
+                if (firstTimeInOtcBusiness2 == 0) {
+                    firstTimeInOtcBusiness2 = 1;
+                    info(TAG, "2: clicking 3");
+                    nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }
+            } else if (sel == 3) {
+                if (firstTimeInOtcBusiness3 == 0) {
+                    firstTimeInOtcBusiness3 = 1;
                     info(TAG, "to scan ceo otc toconfirm list");
-                    sleep(2000, new Runnable() {
+                    sleep(1000, new Runnable() {
                         @Override
                         public void run() {
                             HongbaoService.this.scanCeoToConfirmList();
                         }
                     });
                 }
-
-                if (1 == 0) {
-                    info(TAG, "clicking 3");
+            } else {
+                if (firstTimeInOtcBusiness4 == 0) {
+                    firstTimeInOtcBusiness4 = 1;
+                    info(TAG, "4: clicking 3");
                     nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
-            } else if (sel == 1) {
-                info(TAG, "clicking 3");
-                nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
-            } else if (sel == 2) {
-                info(TAG, "clicking 3");
-                nodes.get(3).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
-            } else if (sel == 3) {
-            } else {
-                nodes.get(3).performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
-
         } else if (HongbaoService.this.isInCeoOtc(nodes)) {
             info(TAG, "is in ceo otc");
             if (otcMenuClicked == 0) {
@@ -1615,7 +1624,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private void startCeo() {
 
-        firstTimeToScanOtcConfirmList = 0;
+        firstTimeInOtcBusiness0 = 0;
+        firstTimeInOtcBusiness1 = 0;
+        firstTimeInOtcBusiness2 = 0;
+        firstTimeInOtcBusiness3 = 0;
+        firstTimeInOtcBusiness4 = 0;
         firstTimeInOtcOrderDetail = 0;
         otcMenuBusinessClicked = 0;
         otcMenuClicked = 0;
@@ -1993,7 +2006,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         registerClipEvents();
         HongbaoService.this.notificationText = "begin test";
         HongbaoService.this.shouldInBillInfo = 0;
-        firstTimeToScanOtcConfirmList = 0;
+        firstTimeInOtcBusiness0 = 0;
         firstTimeInOtcOrderDetail = 0;
         HongbaoService.this.bills.clear();
         sleep(500, new Runnable() {
