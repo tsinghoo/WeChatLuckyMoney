@@ -107,6 +107,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private int firstTimeInOtcBusiness2 = 0;
     private int firstTimeInOtcBusiness3 = 0;
     private int firstTimeInOtcBusiness4 = 0;
+    private String[] otcToConfirmIds = null;
+    private String payPassword = "995561";
 
     /**
      * AccessibilityEvent
@@ -708,7 +710,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             AccessibilityNodeInfo button = node;
             if (node != null) {
                 String clsName = node.getClassName().toString();
-                String amount = "", name = "", mobile = "", reference = "", time="";
+                String amount = "", name = "", mobile = "", reference = "", time = "";
 
                 String tid = "";
                 if (clsName.equals("android.widget.Button")) {
@@ -1121,9 +1123,54 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                             back(500);
                         } else {
                             info[13] = "买" + info[13];
-                            sendIntent(info);
-                            firstTimeInOtcBusiness0 = 0;
-                            back(500);
+
+                            String tid = info[5];
+                            if (HongbaoService.this.contains(otcToConfirmIds, tid)) {
+                                final List<AccessibilityNodeInfo> nodes1 = new ArrayList<AccessibilityNodeInfo>();
+                                HongbaoService.this.findNodesById(nodes1, HongbaoService.this.rootNodeInfo, "com.shiyebaidu.ceo:id/btn_sell_commit");
+                                if (nodes1.size() >= 1) {
+                                    nodes1.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                }
+
+                                sleep(1000, new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        ClipboardManager clipboard = (ClipboardManager) HongbaoService.this.getSystemService(Context.CLIPBOARD_SERVICE);
+                                        ClipData clip = ClipData.newPlainText("text", payPassword);
+                                        clipboard.setPrimaryClip(clip);
+
+                                        HongbaoService.this.findNodesById(nodes1, HongbaoService.this.rootNodeInfo, "com.shiyebaidu.ceo:id/cet_pay_password");
+
+                                        if (nodes1.size() >= 1) {
+                                            nodes1.get(0).performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                                            nodes1.get(0).performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                                            nodes1.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                        }
+
+                                        tsleep(500);
+
+                                        HongbaoService.this.findNodesById(nodes1, HongbaoService.this.rootNodeInfo, "com.shiyebaidu.ceo:id/checkbox");
+                                        if (nodes1.size() >= 1) {
+                                            nodes1.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                        }
+
+                                        tsleep(500);
+                                        /*
+                                        HongbaoService.this.findNodesById(nodes1, HongbaoService.this.rootNodeInfo, "com.shiyebaidu.ceo:id/btn_commit");
+                                        if (nodes1.size() >= 1) {
+                                            nodes1.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                        }
+
+                                        back(500);
+                                        */
+                                    }
+                                });
+
+                            } else {
+                                sendIntent(info);
+                                firstTimeInOtcBusiness0 = 0;
+                                back(500);
+                            }
                         }
                     }
                 });
@@ -1361,7 +1408,22 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             return null;
         }
         orderId = orderId.replace("复制", "").trim();
+
+
         return new String[]{"app", "ceo", "title", "OTC.ceo", "id", tid, "trueName", name, "amount", amount, "createTime", time, "status", status};
+    }
+
+    private boolean contains(String[] arr, String tid) {
+        if (arr == null)
+            return false;
+
+        for (int i = 0; i < arr.length; ++i) {
+            if (tid.equals(arr[i])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void scanCeoToConfirmList() {
@@ -2075,6 +2137,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 @Override
                 public void run() {
                     checkAlipay(0);
+                }
+            }, 5000, interval * 60000);
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    checkCeo();
                 }
             }, 5000, interval * 60000);
 
