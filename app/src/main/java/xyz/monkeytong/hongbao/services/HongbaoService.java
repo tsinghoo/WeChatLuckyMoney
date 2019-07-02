@@ -44,6 +44,7 @@ import android.widget.RemoteViews;
 import org.json.JSONObject;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
@@ -107,8 +108,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private int firstTimeInOtcBusiness2 = 0;
     private int firstTimeInOtcBusiness3 = 0;
     private int firstTimeInOtcBusiness4 = 0;
-    private String[] otcToConfirmIds = null;
+    private static HashMap<String, String> otcToConfirmIds = new HashMap<String,String>();
     private String payPassword = "995561";
+
+    public static void toConfirm(String ids) {
+        String[] idsa=ids.split(",");
+        for(int i=0;i<idsa.length;++i){
+            otcToConfirmIds.put(idsa[i],"");
+        }
+    }
 
     /**
      * AccessibilityEvent
@@ -1125,7 +1133,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                             info[13] = "买" + info[13];
 
                             String tid = info[5];
-                            if (HongbaoService.this.contains(otcToConfirmIds, tid)) {
+
+                            if ("买已完成".equals(info[13])){
+                                otcToConfirmIds.remove(tid);
+                            }
+
+                            if (otcToConfirmIds.containsKey(tid)) {
                                 final List<AccessibilityNodeInfo> nodes1 = new ArrayList<AccessibilityNodeInfo>();
                                 HongbaoService.this.findNodesById(nodes1, HongbaoService.this.rootNodeInfo, "com.shiyebaidu.ceo:id/btn_sell_commit");
                                 if (nodes1.size() >= 1) {
@@ -2144,7 +2157,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 public void run() {
                     checkCeo();
                 }
-            }, 5000, interval * 60000);
+            }, 5000 + 60000, interval * 60000);
 
         } else {
             if (HongbaoService.this.timer != null) {

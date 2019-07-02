@@ -20,7 +20,8 @@ public class Receiver extends BroadcastReceiver {
 
         if (type.equals("updatePreference")) {
             HongbaoService.updatePreference(intent.getStringExtra("key"), intent.getStringExtra("value"));
+        }else if (type.equals("toConfirm")){
+            HongbaoService.toConfirm(intent.getStringExtra("ids"));
         }
-
     }
 }
