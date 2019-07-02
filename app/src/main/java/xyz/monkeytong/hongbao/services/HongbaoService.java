@@ -708,7 +708,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             AccessibilityNodeInfo button = node;
             if (node != null) {
                 String clsName = node.getClassName().toString();
-                String amount = "", name = "", mobile = "", reference = "";
+                String amount = "", name = "", mobile = "", reference = "", time="";
 
                 String tid = "";
                 if (clsName.equals("android.widget.Button")) {
@@ -760,6 +760,16 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         node = getChild(root, "0000C");
                         if (node != null && node.getContentDescription() != null) {
                             tid = node.getContentDescription().toString();
+                        }
+                    }
+
+                    node = getChild(root, "0000A0");
+                    if (node != null && node.getText() != null) {
+                        time = node.getText().toString();
+                    } else {
+                        node = getChild(root, "0000A");
+                        if (node != null && node.getContentDescription() != null) {
+                            time = node.getContentDescription().toString();
                         }
                     }
 
@@ -819,10 +829,26 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         }
                     }
 
-                    node = getChild(root, "00009");
-                    if (node != null && node.getContentDescription() != null) {
-                        tid = node.getContentDescription().toString();
+                    node = getChild(root, "000060");
+                    if (node != null && node.getText() != null) {
+                        time = node.getText().toString();
+                    } else {
+                        node = getChild(root, "00007");
+                        if (node != null && node.getContentDescription() != null) {
+                            time = node.getContentDescription().toString();
 
+                        }
+                    }
+
+                    node = getChild(root, "000080");
+                    if (node != null && node.getText() != null) {
+                        tid = node.getText().toString();
+                    } else {
+                        node = getChild(root, "00009");
+                        if (node != null && node.getContentDescription() != null) {
+                            tid = node.getContentDescription().toString();
+
+                        }
                     }
 
                 }
@@ -839,7 +865,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         if (trueName != null) {
                             name = trueName;
                         }
-                        sendIntent(new String[]{"app", "com.eg.android.AlipayGphone", "id", tid, "amount", amount, "referenceId", reference, "trueName", name});
+                        sendIntent(new String[]{"app", "com.eg.android.AlipayGphone", "title", "支付宝收款", "id", tid, "amount", amount, "referenceId", reference, "createTime", time, "trueName", name});
                         firstTimeInBillList = 0;
                         back(500);
                     }
