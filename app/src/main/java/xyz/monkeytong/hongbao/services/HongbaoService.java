@@ -2129,7 +2129,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         HongbaoService.this.watchFlagsFromPreference();
 
         registerClipEvents();
-        HongbaoService.this.notificationText = "begin test";
+        HongbaoService.this.notificationText = null;
         HongbaoService.this.shouldInBillInfo = 0;
         firstTimeInOtcBusiness0 = 0;
         firstTimeInOtcOrderDetail = 0;
