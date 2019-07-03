@@ -111,10 +111,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private int firstTimeInOtcBusiness4 = 0;
     private static HashMap<String, String> otcToConfirmIds = new HashMap<String, String>();
     private String payPassword = "995561";
+    private Runnable onEventProcessed;
 
     public static void toConfirm(String ids) {
         Log.i(TAG, "ids:" + ids);
         String[] idsa = ids.split(",");
+        otcToConfirmIds.clear();
         for (int i = 0; i < idsa.length; ++i) {
             otcToConfirmIds.put(idsa[i], "");
         }
@@ -696,17 +698,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     }
                 }
 
-                HongbaoService.this.notificationText = null;
-
                 if (manualStart == 0) {
-                    back(1000);
-                    back(1500);
+                    back(1000, null);
+                    back(1500, onEventProcessed);
                 } else {
-                    back(500);
+                    back(500, onEventProcessed);
                 }
-
-                HongbaoService.this.isProcessingEvents = false;
-                processEvents();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1188,6 +1185,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                             } else {
                                 sendIntent(info);
                                 firstTimeInOtcBusiness0 = 0;
+                                firstTimeInOtcBusiness1 = 0;
+                                firstTimeInOtcBusiness2 = 0;
+                                firstTimeInOtcBusiness3 = 0;
+                                firstTimeInOtcBusiness4 = 0;
                                 back(500);
                             }
                         }
@@ -1490,8 +1491,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         HongbaoService.this.notificationText = null;
         HongbaoService.this.isProcessingEvents = false;
-        back(500);
-        processEvents();
+        back(500, onEventProcessed);
     }
 
     private synchronized void refreshBillList() {
@@ -1972,6 +1972,20 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             public void run() {
                 info(TAG, "press back");
                 performGlobalAction(GLOBAL_ACTION_BACK);
+
+            }
+        });
+    }
+
+    private void back(long ms, final Runnable run) {
+        sleep(ms, new Runnable() {
+            @Override
+            public void run() {
+                info(TAG, "press back");
+                performGlobalAction(GLOBAL_ACTION_BACK);
+                if (run != null) {
+                    run.run();
+                }
             }
         });
     }
@@ -2116,6 +2130,14 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         firstTimeInOtcBusiness0 = 0;
         firstTimeInOtcOrderDetail = 0;
         HongbaoService.this.bills.clear();
+        onEventProcessed = new Runnable() {
+            @Override
+            public void run() {
+                HongbaoService.this.notificationText = null;
+                HongbaoService.this.isProcessingEvents = false;
+                processEvents();
+            }
+        };
         sleep(500, new Runnable() {
             @Override
             public void run() {
@@ -2126,16 +2148,13 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         sleep(2000, new Runnable() {
             @Override
             public void run() {
-                startAlipay();
-            }
-        });
-
-        sleep(3000, new Runnable() {
-            @Override
-            public void run() {
-                startCeo();
                 autoWatch();
                 HongbaoService.singleton = HongbaoService.this;
+
+                singleton.notifications.add("alipay:scan");
+
+                singleton.notifications.add("ceo:scan");
+                singleton.processEvents();
             }
         });
 
