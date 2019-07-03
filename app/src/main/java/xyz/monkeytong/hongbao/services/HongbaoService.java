@@ -1730,7 +1730,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void startCeo() {
-
         firstTimeInOtcBusiness0 = 0;
         firstTimeInOtcBusiness1 = 0;
         firstTimeInOtcBusiness2 = 0;
@@ -2158,13 +2157,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    checkAlipay(0);
+                    singleton.notifications.add("alipay:scan");
+                    singleton.processEvents();
                 }
             }, 5000, interval * 60000);
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    checkCeo();
+                    singleton.notifications.add("ceo:scan");
+                    singleton.processEvents();
                 }
             }, 5000 + 60000, interval * 60000);
 
