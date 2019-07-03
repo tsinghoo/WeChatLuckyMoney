@@ -108,13 +108,14 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private int firstTimeInOtcBusiness2 = 0;
     private int firstTimeInOtcBusiness3 = 0;
     private int firstTimeInOtcBusiness4 = 0;
-    private static HashMap<String, String> otcToConfirmIds = new HashMap<String,String>();
+    private static HashMap<String, String> otcToConfirmIds = new HashMap<String, String>();
     private String payPassword = "995561";
 
     public static void toConfirm(String ids) {
-        String[] idsa=ids.split(",");
-        for(int i=0;i<idsa.length;++i){
-            otcToConfirmIds.put(idsa[i],"");
+        Log.i(TAG, "ids:" + ids);
+        String[] idsa = ids.split(",");
+        for (int i = 0; i < idsa.length; ++i) {
+            otcToConfirmIds.put(idsa[i], "");
         }
     }
 
@@ -1134,7 +1135,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
                             String tid = info[5];
 
-                            if ("买已完成".equals(info[13])){
+                            if ("买已完成".equals(info[13])) {
                                 otcToConfirmIds.remove(tid);
                             }
 
