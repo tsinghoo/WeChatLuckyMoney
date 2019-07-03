@@ -1489,8 +1489,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             }
         }
 
-        HongbaoService.this.notificationText = null;
-        HongbaoService.this.isProcessingEvents = false;
         back(500, onEventProcessed);
     }
 
@@ -1722,9 +1720,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (HongbaoService.this.notificationText.startsWith("ceo")) {
             startCeo();
         } else if (HongbaoService.this.notificationText.startsWith("alipay")) {
-
-            //notification.contentIntent.send();
-            startAlipay();
+            isProcessingEvents = false;
+            notificationText = null;
+            processEvents();
+            //startAlipay();
         }
 
     }
@@ -1995,7 +1994,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     }
 
     private void sendIntent(String[] info) {
-        info(TAG, "sending notification:" + info.toString());
+        String msg = "";
+        for (int i = 0; i < info.length; i = i + 2) {
+            msg += info[i] + ":" + info[i + 1] + ",";
+        }
+
+        info(TAG, "sending notification:" + msg);
         Intent intent = new Intent();
         intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
         intent.setAction("com.darryncampbell.cordova.plugin.broadcastIntent.ACTION");
@@ -2315,16 +2319,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             Boolean changedValue = sharedPreferences.getBoolean(key, false);
             HongbaoService.this.powerUtil.handleWakeLock(changedValue);
             if (changedValue == false) {
-                HongbaoService.this.checkAlipay(1);
+                //this.notifications.add("alipay:scan");
             } else {
-                sleep(1000, new Runnable() {
-                    @Override
-                    public void run() {
-                        HongbaoService.this.checkCeo();
-                    }
-                });
+                this.notifications.add("ceo:scan");
                 //sendIntent(new String[]{"type", "test", "data", "test"});
             }
+            processEvents();
         } else if (key.equals("pref_open_delay")) {
             autoWatch();
         }
