@@ -69,6 +69,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private static final String WECHAT_LUCKMONEY_DETAIL_ACTIVITY = "LuckyMoneyDetailUI";
     private static final String WECHAT_LUCKMONEY_GENERAL_ACTIVITY = "LauncherUI";
     private static final String WECHAT_LUCKMONEY_CHATTING_ACTIVITY = "ChattingUI";
+    private static HongbaoService singleton = null;
     private String currentActivityName = WECHAT_LUCKMONEY_GENERAL_ACTIVITY;
 
     private AccessibilityNodeInfo rootNodeInfo, mReceiveNode, mUnpackNode;
@@ -116,6 +117,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         String[] idsa = ids.split(",");
         for (int i = 0; i < idsa.length; ++i) {
             otcToConfirmIds.put(idsa[i], "");
+        }
+
+        if (singleton != null && otcToConfirmIds.size() > 0) {
+            singleton.notifications.add("ceo:to confirm");
+            singleton.processEvents();
         }
     }
 
@@ -623,7 +629,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
             }
         }
-
 
         return false;
     }
@@ -1867,7 +1872,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     @Override
     public void onInterrupt() {
-
+        info(TAG, "onInterrupt");
+        HongbaoService.singleton = null;
     }
 
     public Intent getIntent(PendingIntent pendingIntent) throws IllegalStateException {
@@ -2130,8 +2136,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             public void run() {
                 startCeo();
                 autoWatch();
+                HongbaoService.singleton = HongbaoService.this;
             }
         });
+
 
     }
 
