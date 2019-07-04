@@ -50,6 +50,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Vector;
 
 public class HongbaoService extends AccessibilityService implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = "HongbaoService";
@@ -100,7 +101,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private Timer timer;
     private String trueName = null;
     private JSONObject payInfo = null;
-    private java.util.concurrent.ConcurrentLinkedQueue<String> notifications = new java.util.concurrent.ConcurrentLinkedQueue<String>();
+    private Vector<String> notifications = new Vector<String>();
     private boolean isProcessingEvents = false;
     private int firstTimeInOtcBusiness0 = 0;
     private int firstTimeInOtcOrderDetail = 0;
@@ -1711,21 +1712,35 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
 
         isProcessingEvents = true;
-        HongbaoService.this.notificationText = HongbaoService.this.notifications.poll();
+        HongbaoService.this.notificationText = HongbaoService.this.notifications.elementAt(0);
+        notifications.remove(0);
         info(TAG, "processing " + HongbaoService.this.notificationText);
         processEvent();
     }
 
     private void processEvent() {
         if (HongbaoService.this.notificationText.startsWith("ceo")) {
+            clearNotifications("ceo");
             isProcessingEvents = false;
             notificationText = null;
             processEvents();
             //startCeo();
         } else if (HongbaoService.this.notificationText.startsWith("alipay")) {
+            clearNotifications("alipay");
             startAlipay();
         }
 
+    }
+
+    private void clearNotifications(String prefix) {
+        int i = 0;
+        while (i < notifications.size()) {
+            if (notifications.get(i).startsWith(prefix)) {
+                notifications.remove(i);
+            } else {
+                ++i;
+            }
+        }
     }
 
     private void startCeo() {
