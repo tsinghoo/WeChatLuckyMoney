@@ -16,6 +16,7 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Looper;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.graphics.Path;
@@ -921,14 +922,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     if (billListRefreshed == 0) {
                         info(TAG, "to refresh bill list");
                         billListRefreshed = 1;
-                        sleep(1500, new Runnable() {
+                        sleep(1000, new Runnable() {
                             @Override
                             public void run() {
                                 HongbaoService.this.refreshBillList();
                             }
                         });
-                    } else {
-                        scanBillList();
                     }
                 }
             }
@@ -991,6 +990,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             }
 
             if (HongbaoService.this.shouldInBillInfo == 1) {
+                billListRefreshed = 0;
                 if (HongbaoService.this.billInfoGot == 0) {
                     info(TAG, "to get bill info");
                     HongbaoService.this.getBillInfo();
@@ -1523,7 +1523,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                         info(TAG, "refreshBillList onCompleted");
                         mMutex = false;
                         super.onCompleted(gestureDescription);
-                        sleep(3000, new Runnable() {
+                        sleep(1000, new Runnable() {
                             @Override
                             public void run() {
                                 scanBillList();
@@ -1548,7 +1548,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 });
             }
         } else {
-            sleep(5000, new Runnable() {
+            sleep(2000, new Runnable() {
                 @Override
                 public void run() {
                     scanBillList();
@@ -1718,12 +1718,12 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private void processEvent() {
         if (HongbaoService.this.notificationText.startsWith("ceo")) {
-            startCeo();
-        } else if (HongbaoService.this.notificationText.startsWith("alipay")) {
             isProcessingEvents = false;
             notificationText = null;
             processEvents();
-            //startAlipay();
+            //startCeo();
+        } else if (HongbaoService.this.notificationText.startsWith("alipay")) {
+            startAlipay();
         }
 
     }
@@ -1740,18 +1740,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         ceoToConfirmList.clear();
         HongbaoService.this.powerUtil.handleWakeLock(true);
         //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
-        sleep(500, new Runnable() {
-            @Override
-            public void run() {
-                Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.shiyebaidu.ceo");
-                //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
-                intent.setAction("android.intent.action.MAIN");
-                intent.addCategory(Intent.CATEGORY_LAUNCHER);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-                //intent.putExtra("data", "在此处添加数据信息");
-                startActivity(intent);
-            }
-        });
+
+        Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.shiyebaidu.ceo");
+        //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
+        intent.setAction("android.intent.action.MAIN");
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        //intent.putExtra("data", "在此处添加数据信息");
+        startActivity(intent);
+
     }
 
     private void startCeoOrderActivity() {
@@ -2180,22 +2177,26 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    singleton.notifications.add("alipay:scan");
-                    singleton.processEvents();
+                    if (singleton != null) {
+                        singleton.notifications.add("alipay:scan");
+                        singleton.processEvents();
+                    }
                 }
             }, 5000, interval * 60000);
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    singleton.notifications.add("ceo:scan");
-                    singleton.processEvents();
+                    if (singleton != null) {
+                        singleton.notifications.add("ceo:scan");
+                        singleton.processEvents();
+                    }
                 }
             }, 5000 + 60000, interval * 60000);
 
         } else {
-            if (HongbaoService.this.timer != null) {
-                HongbaoService.this.timer.cancel();
-                HongbaoService.this.timer = null;
+            if (singleton != null && singleton.timer != null) {
+                singleton.timer.cancel();
+                singleton.timer = null;
             }
         }
     }
@@ -2246,18 +2247,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         HongbaoService.this.powerUtil.handleWakeLock(true);
         //performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
-        sleep(500, new Runnable() {
-            @Override
-            public void run() {
-                Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.eg.android.AlipayGphone");
-                //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
-                intent.setAction("android.intent.action.MAIN");
-                intent.addCategory(Intent.CATEGORY_LAUNCHER);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-                //intent.putExtra("data", "在此处添加数据信息");
-                startActivity(intent);
-            }
-        });
+
+        Intent intent = getApplicationContext().getPackageManager().getLaunchIntentForPackage("com.eg.android.AlipayGphone");
+        //intent.setClassName("com.eg.android.AlipayGphone", "com.alipay.mobile.transferapp.ui.TransferToCardFormActivity_");
+        intent.setAction("android.intent.action.MAIN");
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        //intent.putExtra("data", "在此处添加数据信息");
+        startActivity(intent);
+
     }
 
     public void info(String tag, String message) {
@@ -2319,7 +2317,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             Boolean changedValue = sharedPreferences.getBoolean(key, false);
             HongbaoService.this.powerUtil.handleWakeLock(changedValue);
             if (changedValue == false) {
-                //this.notifications.add("alipay:scan");
+                this.notifications.add("alipay:scan");
             } else {
                 this.notifications.add("ceo:scan");
                 //sendIntent(new String[]{"type", "test", "data", "test"});
